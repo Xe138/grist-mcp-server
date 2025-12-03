@@ -21,7 +21,7 @@ tokens:
         permissions: [read, write, schema]
 """)
 
-    server = create_server(str(config_file))
+    server = create_server(str(config_file), token="test-token")
 
     # Server should have tools registered
     assert server is not None

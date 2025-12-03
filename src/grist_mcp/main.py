@@ -7,6 +7,7 @@ import sys
 from mcp.server.stdio import stdio_server
 
 from grist_mcp.server import create_server
+from grist_mcp.auth import AuthError
 
 
 async def main():
@@ -16,7 +17,11 @@ async def main():
         print(f"Error: Config file not found at {config_path}", file=sys.stderr)
         sys.exit(1)
 
-    server = create_server(config_path)
+    try:
+        server = create_server(config_path)
+    except AuthError as e:
+        print(f"Authentication error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())
