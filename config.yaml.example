@@ -1,0 +1,40 @@
+# config.yaml.example
+
+# ============================================================
+# Token Generation:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+#   openssl rand -base64 32
+# ============================================================
+
+# Document definitions (each is self-contained)
+documents:
+  budget-2024:
+    url: https://work.getgrist.com
+    doc_id: mK7xB2pQ9mN4v
+    api_key: ${GRIST_WORK_API_KEY}
+
+  expenses:
+    url: https://work.getgrist.com
+    doc_id: nL8yC3qR0oO5w
+    api_key: ${GRIST_WORK_API_KEY}
+
+  personal-tracker:
+    url: https://docs.getgrist.com
+    doc_id: pN0zE5sT2qP7x
+    api_key: ${GRIST_PERSONAL_API_KEY}
+
+# Agent tokens with access scopes
+tokens:
+  - token: REPLACE_WITH_GENERATED_TOKEN
+    name: finance-agent
+    scope:
+      - document: budget-2024
+        permissions: [read, write]
+      - document: expenses
+        permissions: [read]
+
+  - token: REPLACE_WITH_ANOTHER_TOKEN
+    name: analytics-agent
+    scope:
+      - document: personal-tracker
+        permissions: [read, write, schema]
