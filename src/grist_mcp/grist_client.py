@@ -1,21 +1,27 @@
 """Grist API client."""
 
+import json
+
 import httpx
 
 from grist_mcp.config import Document
+
+# Default timeout for HTTP requests (30 seconds)
+DEFAULT_TIMEOUT = 30.0
 
 
 class GristClient:
     """Async client for Grist API operations."""
 
-    def __init__(self, document: Document):
+    def __init__(self, document: Document, timeout: float = DEFAULT_TIMEOUT):
         self._doc = document
         self._base_url = f"{document.url.rstrip('/')}/api/docs/{document.doc_id}"
         self._headers = {"Authorization": f"Bearer {document.api_key}"}
+        self._timeout = timeout
 
     async def _request(self, method: str, path: str, **kwargs) -> dict:
         """Make an authenticated request to Grist API."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.request(
                 method,
                 f"{self._base_url}{path}",
@@ -54,7 +60,7 @@ class GristClient:
         """Fetch records from a table."""
         params = {}
         if filter:
-            params["filter"] = filter
+            params["filter"] = json.dumps(filter)
         if sort:
             params["sort"] = sort
         if limit:
@@ -68,9 +74,26 @@ class GristClient:
         ]
 
     async def sql_query(self, sql: str) -> list[dict]:
-        """Run a read-only SQL query."""
+        """Run a read-only SQL query.
+
+        Raises:
+            ValueError: If query is not a SELECT statement or contains multiple statements.
+        """
+        self._validate_sql_query(sql)
         data = await self._request("GET", "/sql", params={"q": sql})
         return [r["fields"] for r in data.get("records", [])]
+
+    @staticmethod
+    def _validate_sql_query(sql: str) -> None:
+        """Validate SQL query for safety.
+
+        Only allows SELECT statements and rejects multiple statements.
+        """
+        sql_stripped = sql.strip()
+        if not sql_stripped.upper().startswith("SELECT"):
+            raise ValueError("Only SELECT queries are allowed")
+        if ";" in sql_stripped[:-1]:  # Allow trailing semicolon
+            raise ValueError("Multiple statements not allowed")
 
     # Write operations
 

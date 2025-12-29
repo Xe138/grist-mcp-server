@@ -179,3 +179,20 @@ async def test_delete_column(client, httpx_mock: HTTPXMock):
 
     # Should not raise
     await client.delete_column("Table1", "OldCol")
+
+
+# SQL validation tests
+
+def test_sql_validation_rejects_non_select(client):
+    with pytest.raises(ValueError, match="Only SELECT queries are allowed"):
+        client._validate_sql_query("DROP TABLE users")
+
+
+def test_sql_validation_rejects_multiple_statements(client):
+    with pytest.raises(ValueError, match="Multiple statements not allowed"):
+        client._validate_sql_query("SELECT * FROM users; DROP TABLE users")
+
+
+def test_sql_validation_allows_trailing_semicolon(client):
+    # Should not raise
+    client._validate_sql_query("SELECT * FROM users;")

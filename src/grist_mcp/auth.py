@@ -67,6 +67,14 @@ class Authenticator:
             for scope in agent._token_obj.scope
         ]
 
-    def get_document(self, document_name: str):
-        """Get document config by name."""
-        return self._config.documents.get(document_name)
+    def get_document(self, document_name: str) -> "Document":
+        """Get document config by name.
+
+        Raises:
+            AuthError: If document is not configured.
+        """
+        from grist_mcp.config import Document
+        doc = self._config.documents.get(document_name)
+        if doc is None:
+            raise AuthError(f"Document '{document_name}' not configured")
+        return doc

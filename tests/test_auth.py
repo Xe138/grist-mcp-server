@@ -82,3 +82,18 @@ def test_get_accessible_documents(sample_config):
     assert len(docs) == 2
     assert {"name": "budget", "permissions": ["read", "write"]} in docs
     assert {"name": "expenses", "permissions": ["read"]} in docs
+
+
+def test_get_document_returns_document(sample_config):
+    auth = Authenticator(sample_config)
+
+    doc = auth.get_document("budget")
+
+    assert doc.doc_id == "abc123"
+
+
+def test_get_document_raises_on_unknown(sample_config):
+    auth = Authenticator(sample_config)
+
+    with pytest.raises(AuthError, match="Document 'unknown' not configured"):
+        auth.get_document("unknown")
