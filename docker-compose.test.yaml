@@ -1,0 +1,39 @@
+services:
+  grist-mcp:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+      - GRIST_MCP_TOKEN=test-token
+      - PORT=3000
+    volumes:
+      - ./tests/integration/config.test.yaml:/app/config.yaml:ro
+    depends_on:
+      mock-grist:
+        condition: service_started
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mock-grist:
+    build: tests/integration/mock_grist
+    ports:
+      - "8484:8484"
+    environment:
+      - PORT=8484
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8484/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  test-net:
+    driver: bridge
