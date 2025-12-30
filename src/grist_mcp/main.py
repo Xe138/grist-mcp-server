@@ -1,16 +1,19 @@
-"""Main entry point for the MCP server."""
+"""Main entry point for the MCP server with SSE transport."""
 
-import asyncio
 import os
 import sys
 
-from mcp.server.stdio import stdio_server
+import uvicorn
+from mcp.server.sse import SseServerTransport
+from starlette.applications import Starlette
+from starlette.routing import Route
 
 from grist_mcp.server import create_server
 from grist_mcp.auth import AuthError
 
 
-async def main():
+def create_app() -> Starlette:
+    """Create the Starlette ASGI application."""
     config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
 
     if not os.path.exists(config_path):
@@ -23,9 +26,36 @@ async def main():
         print(f"Authentication error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+    sse = SseServerTransport("/messages")
+
+    async def handle_sse(request):
+        async with sse.connect_sse(
+            request.scope, request.receive, request._send
+        ) as streams:
+            await server.run(
+                streams[0], streams[1], server.create_initialization_options()
+            )
+
+    async def handle_messages(request):
+        await sse.handle_post_message(request.scope, request.receive, request._send)
+
+    return Starlette(
+        routes=[
+            Route("/sse", endpoint=handle_sse),
+            Route("/messages", endpoint=handle_messages, methods=["POST"]),
+        ]
+    )
+
+
+def main():
+    """Run the SSE server."""
+    port = int(os.environ.get("PORT", "3000"))
+    app = create_app()
+    print(f"Starting grist-mcp SSE server on port {port}")
+    print(f"  SSE endpoint: http://0.0.0.0:{port}/sse")
+    print(f"  Messages endpoint: http://0.0.0.0:{port}/messages")
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
