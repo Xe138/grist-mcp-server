@@ -1,29 +1,36 @@
+# Test environment - ephemeral, branch-isolated
 services:
   grist-mcp:
-    build: .
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: grist-mcp-test-${TEST_INSTANCE_ID:-default}
     ports:
-      - "3000:3000"
+      - "3000"  # Dynamic port
     environment:
       - CONFIG_PATH=/app/config.yaml
       - GRIST_MCP_TOKEN=test-token
       - PORT=3000
     volumes:
-      - ./tests/integration/config.test.yaml:/app/config.yaml:ro
+      - ../../tests/integration/config.test.yaml:/app/config.yaml:ro
     depends_on:
       mock-grist:
-        condition: service_started
+        condition: service_healthy
     networks:
       - test-net
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
 
   mock-grist:
-    build: tests/integration/mock_grist
+    build:
+      context: ../../tests/integration/mock_grist
+    container_name: mock-grist-test-${TEST_INSTANCE_ID:-default}
     ports:
-      - "8484:8484"
+      - "8484"  # Dynamic port
     environment:
       - PORT=8484
     networks:
@@ -32,8 +39,10 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8484/health')"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
 
 networks:
   test-net:
+    name: grist-mcp-test-${TEST_INSTANCE_ID:-default}
     driver: bridge
