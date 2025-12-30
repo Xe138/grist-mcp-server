@@ -2,19 +2,22 @@
 
 import os
 import sys
+from typing import Any
 
 import uvicorn
 from mcp.server.sse import SseServerTransport
-from starlette.applications import Starlette
-from starlette.responses import JSONResponse
-from starlette.routing import Route
 
 from grist_mcp.server import create_server
 from grist_mcp.auth import AuthError
 
 
-def create_app() -> Starlette:
-    """Create the Starlette ASGI application."""
+Scope = dict[str, Any]
+Receive = Any
+Send = Any
+
+
+def create_app():
+    """Create the ASGI application."""
     config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
 
     if not os.path.exists(config_path):
@@ -29,27 +32,54 @@ def create_app() -> Starlette:
 
     sse = SseServerTransport("/messages")
 
-    async def handle_sse(request):
-        async with sse.connect_sse(
-            request.scope, request.receive, request._send
-        ) as streams:
+    async def handle_sse(scope: Scope, receive: Receive, send: Send) -> None:
+        async with sse.connect_sse(scope, receive, send) as streams:
             await server.run(
                 streams[0], streams[1], server.create_initialization_options()
             )
 
-    async def handle_messages(request):
-        await sse.handle_post_message(request.scope, request.receive, request._send)
+    async def handle_messages(scope: Scope, receive: Receive, send: Send) -> None:
+        await sse.handle_post_message(scope, receive, send)
 
-    async def handle_health(request):
-        return JSONResponse({"status": "ok"})
+    async def handle_health(scope: Scope, receive: Receive, send: Send) -> None:
+        await send({
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [[b"content-type", b"application/json"]],
+        })
+        await send({
+            "type": "http.response.body",
+            "body": b'{"status":"ok"}',
+        })
 
-    return Starlette(
-        routes=[
-            Route("/health", endpoint=handle_health),
-            Route("/sse", endpoint=handle_sse),
-            Route("/messages", endpoint=handle_messages, methods=["POST"]),
-        ]
-    )
+    async def handle_not_found(scope: Scope, receive: Receive, send: Send) -> None:
+        await send({
+            "type": "http.response.start",
+            "status": 404,
+            "headers": [[b"content-type", b"application/json"]],
+        })
+        await send({
+            "type": "http.response.body",
+            "body": b'{"error":"Not found"}',
+        })
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            return
+
+        path = scope["path"]
+        method = scope["method"]
+
+        if path == "/health" and method == "GET":
+            await handle_health(scope, receive, send)
+        elif path == "/sse" and method == "GET":
+            await handle_sse(scope, receive, send)
+        elif path == "/messages" and method == "POST":
+            await handle_messages(scope, receive, send)
+        else:
+            await handle_not_found(scope, receive, send)
+
+    return app
 
 
 def main():

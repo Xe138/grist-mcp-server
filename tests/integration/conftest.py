@@ -4,8 +4,6 @@ import time
 
 import httpx
 import pytest
-from mcp import ClientSession
-from mcp.client.sse import sse_client
 
 
 GRIST_MCP_URL = "http://localhost:3000"
@@ -35,26 +33,3 @@ def services_ready():
     if not wait_for_service(GRIST_MCP_URL):
         pytest.fail(f"grist-mcp server not ready at {GRIST_MCP_URL}")
     return True
-
-
-@pytest.fixture
-async def mcp_client(services_ready):
-    """Create an MCP client connected to grist-mcp via SSE."""
-    async with sse_client(f"{GRIST_MCP_URL}/sse") as (read_stream, write_stream):
-        async with ClientSession(read_stream, write_stream) as session:
-            await session.initialize()
-            yield session
-
-
-@pytest.fixture
-def mock_grist_client(services_ready):
-    """HTTP client for interacting with mock Grist test endpoints."""
-    with httpx.Client(base_url=MOCK_GRIST_URL, timeout=10.0) as client:
-        yield client
-
-
-@pytest.fixture(autouse=True)
-def clear_mock_grist_log(mock_grist_client):
-    """Clear the mock Grist request log before each test."""
-    mock_grist_client.post("/_test/requests/clear")
-    yield
