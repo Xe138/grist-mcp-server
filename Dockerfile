@@ -28,10 +28,10 @@ RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /app
 
 # Copy virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
 # Copy source code
-COPY --from=builder /app/src ./src
+COPY --from=builder --chown=appuser:appuser /app/src ./src
 
 # Set environment
 ENV PATH="/app/.venv/bin:$PATH"
