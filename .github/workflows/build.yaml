@@ -1,0 +1,76 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  IMAGE_NAME: grist-mcp
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine registry
+        id: registry
+        run: |
+          if [ "${{ vars.GITEA_ACTIONS }}" = "true" ]; then
+            # Gitea: use server URL as registry
+            REGISTRY="${{ github.server_url }}"
+            REGISTRY="${REGISTRY#https://}"
+            REGISTRY="${REGISTRY#http://}"
+            echo "registry=${REGISTRY}" >> $GITHUB_OUTPUT
+            echo "is_gitea=true" >> $GITHUB_OUTPUT
+          else
+            # GitHub: use GHCR
+            echo "registry=ghcr.io" >> $GITHUB_OUTPUT
+            echo "is_gitea=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to GitHub Container Registry
+        if: steps.registry.outputs.is_gitea == 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Gitea Container Registry
+        if: steps.registry.outputs.is_gitea == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.registry.outputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.registry.outputs.registry }}/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
