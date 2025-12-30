@@ -5,7 +5,7 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 test: ## Run unit tests
-	uv run pytest tests/ -v --ignore=tests/integration
+	uv run pytest tests/unit/ -v
 
 build: ## Build Docker images for testing
 	docker compose -f docker-compose.test.yaml build
