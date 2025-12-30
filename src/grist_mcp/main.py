@@ -6,6 +6,7 @@ import sys
 import uvicorn
 from mcp.server.sse import SseServerTransport
 from starlette.applications import Starlette
+from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from grist_mcp.server import create_server
@@ -39,8 +40,12 @@ def create_app() -> Starlette:
     async def handle_messages(request):
         await sse.handle_post_message(request.scope, request.receive, request._send)
 
+    async def handle_health(request):
+        return JSONResponse({"status": "ok"})
+
     return Starlette(
         routes=[
+            Route("/health", endpoint=handle_health),
             Route("/sse", endpoint=handle_sse),
             Route("/messages", endpoint=handle_messages, methods=["POST"]),
         ]
