@@ -1,0 +1,10 @@
+services:
+  grist-mcp:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    env_file:
+      - .env
+    restart: unless-stopped
