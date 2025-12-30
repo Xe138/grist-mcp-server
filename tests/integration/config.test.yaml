@@ -1,0 +1,12 @@
+documents:
+  test-doc:
+    url: http://mock-grist:8484
+    doc_id: test-doc-id
+    api_key: test-api-key
+
+tokens:
+  - token: test-token
+    name: test-agent
+    scope:
+      - document: test-doc
+        permissions: [read, write, schema]
