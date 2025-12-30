@@ -76,13 +76,22 @@ openssl rand -base64 32
 
 ### Running the Server
 
+The server uses SSE (Server-Sent Events) transport over HTTP:
+
 ```bash
 # Set your agent token
 export GRIST_MCP_TOKEN="your-agent-token"
 
-# Run with custom config path
+# Run with custom config path (defaults to port 3000)
 CONFIG_PATH=./config.yaml uv run python -m grist_mcp.main
+
+# Or specify a custom port
+PORT=8080 CONFIG_PATH=./config.yaml uv run python -m grist_mcp.main
 ```
+
+The server exposes two endpoints:
+- `http://localhost:3000/sse` - SSE connection endpoint
+- `http://localhost:3000/messages` - Message posting endpoint
 
 ### MCP Client Configuration
 
@@ -92,14 +101,19 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 {
   "mcpServers": {
     "grist": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "grist_mcp.main"],
-      "cwd": "/path/to/grist-mcp",
-      "env": {
-        "CONFIG_PATH": "/path/to/config.yaml",
-        "GRIST_MCP_TOKEN": "your-agent-token",
-        "GRIST_API_KEY": "your-grist-api-key"
-      }
+      "url": "http://localhost:3000/sse"
+    }
+  }
+}
+```
+
+For remote deployments, use the server's public URL:
+
+```json
+{
+  "mcpServers": {
+    "grist": {
+      "url": "https://your-server.example.com/sse"
     }
   }
 }
