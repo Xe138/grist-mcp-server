@@ -172,6 +172,71 @@ grist-mcp/
 └── pyproject.toml
 ```
 
+## Docker Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose
+
+### Quick Start
+
+```bash
+# 1. Copy example files
+cp .env.example .env
+cp config.yaml.example config.yaml
+
+# 2. Edit .env with your tokens and API keys
+#    - Set GRIST_MCP_TOKEN to a secure agent token
+#    - Set your Grist API keys
+
+# 3. Edit config.yaml with your document settings
+#    - Configure your Grist documents
+#    - Set up token scopes and permissions
+
+# 4. Start the server
+docker compose up -d
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `3000` |
+| `GRIST_MCP_TOKEN` | Agent authentication token (required) | - |
+| `CONFIG_PATH` | Path to config file inside container | `/app/config.yaml` |
+| `GRIST_*_API_KEY` | Grist API keys referenced in config.yaml | - |
+
+### Using Prebuilt Images
+
+To use a prebuilt image from a container registry:
+
+```yaml
+# docker-compose.yaml
+services:
+  grist-mcp:
+    image: your-registry/grist-mcp:latest
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    env_file:
+      - .env
+    restart: unless-stopped
+```
+
+### Building Locally
+
+```bash
+# Build the image
+docker build -t grist-mcp .
+
+# Run directly
+docker run -p 3000:3000 \
+  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  --env-file .env \
+  grist-mcp
+```
+
 ## License
 
 MIT
