@@ -1,20 +1,20 @@
 .PHONY: help test test-unit test-integration build dev-up dev-down pre-deploy clean
 
 VERBOSE ?= 0
-PYTEST_ARGS := $(if $(filter 1,$(VERBOSE)),-v,-q)
 
 # Default target
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # Testing
-test: test-unit ## Run all tests (unit only by default)
+test: ## Run all tests (unit + integration) with rich progress display
+	@uv run python scripts/test-runner.py $(if $(filter 1,$(VERBOSE)),-v)
 
-test-unit: ## Run unit tests
-	uv run pytest tests/unit/ $(PYTEST_ARGS)
+test-unit: ## Run unit tests only
+	@uv run python scripts/test-runner.py --unit-only $(if $(filter 1,$(VERBOSE)),-v)
 
-test-integration: ## Run integration tests (starts/stops containers)
-	./scripts/run-integration-tests.sh
+test-integration: ## Run integration tests only (starts/stops containers)
+	@uv run python scripts/test-runner.py --integration-only $(if $(filter 1,$(VERBOSE)),-v)
 
 # Docker
 build: ## Build Docker image
@@ -27,7 +27,7 @@ dev-down: ## Stop development environment
 	cd deploy/dev && docker compose down
 
 # Pre-deployment
-pre-deploy: test-unit test-integration ## Full pre-deployment pipeline
+pre-deploy: test ## Full pre-deployment pipeline
 	@echo "Pre-deployment checks passed!"
 
 # Cleanup
