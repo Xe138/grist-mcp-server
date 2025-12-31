@@ -1,13 +1,14 @@
 """Fixtures for integration tests."""
 
+import os
 import time
 
 import httpx
 import pytest
 
 
-GRIST_MCP_URL = "http://localhost:3000"
-MOCK_GRIST_URL = "http://localhost:8484"
+GRIST_MCP_URL = os.environ.get("GRIST_MCP_URL", "http://localhost:3000")
+MOCK_GRIST_URL = os.environ.get("MOCK_GRIST_URL", "http://localhost:8484")
 MAX_WAIT_SECONDS = 30
 
 

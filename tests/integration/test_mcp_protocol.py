@@ -1,5 +1,6 @@
 """Test MCP protocol compliance over SSE transport."""
 
+import os
 from contextlib import asynccontextmanager
 
 import pytest
@@ -7,7 +8,7 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 
 
-GRIST_MCP_URL = "http://localhost:3000"
+GRIST_MCP_URL = os.environ.get("GRIST_MCP_URL", "http://localhost:3000")
 
 
 @asynccontextmanager

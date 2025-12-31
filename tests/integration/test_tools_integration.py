@@ -1,6 +1,7 @@
 """Test tool calls through MCP client to verify Grist API interactions."""
 
 import json
+import os
 from contextlib import asynccontextmanager
 
 import httpx
@@ -9,8 +10,8 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 
 
-GRIST_MCP_URL = "http://localhost:3000"
-MOCK_GRIST_URL = "http://localhost:8484"
+GRIST_MCP_URL = os.environ.get("GRIST_MCP_URL", "http://localhost:3000")
+MOCK_GRIST_URL = os.environ.get("MOCK_GRIST_URL", "http://localhost:8484")
 
 
 @asynccontextmanager
