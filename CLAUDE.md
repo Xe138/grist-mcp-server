@@ -17,11 +17,23 @@ grist-mcp is an MCP (Model Context Protocol) server that enables AI agents to in
 ## Commands
 
 ```bash
-# Run tests
-uv run pytest -v
+# Run unit tests
+make test-unit
+# or: uv run pytest tests/unit/ -v
 
-# Run a specific test file
-uv run pytest tests/test_auth.py -v
+# Run integration tests (manages containers automatically)
+make test-integration
+# or: ./scripts/run-integration-tests.sh
+
+# Full pre-deploy pipeline
+make pre-deploy
+
+# Development environment
+make dev-up    # Start
+make dev-down  # Stop
+
+# Build Docker image
+make build
 
 # Run the server (requires config and token)
 CONFIG_PATH=./config.yaml GRIST_MCP_TOKEN=your-token uv run python -m grist_mcp.main
@@ -30,7 +42,7 @@ CONFIG_PATH=./config.yaml GRIST_MCP_TOKEN=your-token uv run python -m grist_mcp.
 ## Project Structure
 
 ```
-src/grist_mcp/
+src/grist_mcp/       # Source code
 ├── main.py          # Entry point, runs stdio server
 ├── server.py        # MCP server setup, tool registration, call_tool dispatch
 ├── config.py        # YAML config loading with env var substitution
@@ -41,6 +53,14 @@ src/grist_mcp/
     ├── read.py      # list_tables, describe_table, get_records, sql_query
     ├── write.py     # add_records, update_records, delete_records
     └── schema.py    # create_table, add_column, modify_column, delete_column
+tests/
+├── unit/            # Unit tests (no containers)
+└── integration/     # Integration tests (with Docker)
+deploy/
+├── dev/             # Development docker-compose
+├── test/            # Test docker-compose (ephemeral)
+└── prod/            # Production docker-compose
+scripts/             # Test automation scripts
 ```
 
 ## Key Patterns
@@ -71,10 +91,17 @@ The optional `client` parameter enables dependency injection for testing.
 
 ## Testing
 
-Tests use pytest-httpx to mock Grist API responses. Each test file has fixtures for common setup:
+### Unit Tests (`tests/unit/`)
+Fast tests using pytest-httpx to mock Grist API responses. Run with `make test-unit`.
 - `test_auth.py`: Uses in-memory Config objects
 - `test_grist_client.py`: Uses HTTPXMock for API mocking
 - `test_tools_*.py`: Combine auth fixtures with mocked clients
+
+### Integration Tests (`tests/integration/`)
+Tests against real Grist containers. Run with `make test-integration`.
+- Automatically manages Docker containers via `scripts/run-integration-tests.sh`
+- Uses environment variables for configuration (no hardcoded URLs)
+- Containers are ephemeral and cleaned up after tests
 
 ## Configuration
 
