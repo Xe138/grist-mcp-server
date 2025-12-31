@@ -1,34 +1,37 @@
-.PHONY: help test build integration-up integration-test integration-down integration pre-deploy clean
+.PHONY: help test test-unit test-integration build dev-up dev-down pre-deploy clean
+
+VERBOSE ?= 0
+PYTEST_ARGS := $(if $(filter 1,$(VERBOSE)),-v,-q)
 
 # Default target
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-test: ## Run unit tests
-	uv run pytest tests/unit/ -v
+# Testing
+test: test-unit ## Run all tests (unit only by default)
 
-build: ## Build Docker images for testing
-	docker compose -f docker-compose.test.yaml build
+test-unit: ## Run unit tests
+	uv run pytest tests/unit/ $(PYTEST_ARGS)
 
-integration-up: ## Start integration test containers
-	docker compose -f docker-compose.test.yaml up -d
-	@echo "Waiting for services to be ready..."
-	@sleep 5
+test-integration: ## Run integration tests (starts/stops containers)
+	./scripts/run-integration-tests.sh
 
-integration-test: ## Run integration tests (containers must be up)
-	uv run pytest tests/integration/ -v
+# Docker
+build: ## Build Docker image
+	docker build -t grist-mcp:latest .
 
-integration-down: ## Stop and remove test containers
-	docker compose -f docker-compose.test.yaml down -v
+dev-up: ## Start development environment
+	cd deploy/dev && docker compose up -d --build
 
-integration: build integration-up ## Full integration cycle (build, up, test, down)
-	@$(MAKE) integration-test || ($(MAKE) integration-down && exit 1)
-	@$(MAKE) integration-down
+dev-down: ## Stop development environment
+	cd deploy/dev && docker compose down
 
-pre-deploy: test integration ## Full pre-deployment pipeline (unit tests + integration)
+# Pre-deployment
+pre-deploy: test-unit test-integration ## Full pre-deployment pipeline
 	@echo "Pre-deployment checks passed!"
 
-clean: ## Remove all test artifacts and containers
-	docker compose -f docker-compose.test.yaml down -v --rmi local 2>/dev/null || true
+# Cleanup
+clean: ## Remove test artifacts and containers
+	cd deploy/test && docker compose down -v --rmi local 2>/dev/null || true
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
