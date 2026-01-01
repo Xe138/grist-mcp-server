@@ -14,6 +14,7 @@ class Document:
     url: str
     doc_id: str
     api_key: str
+    host_header: str | None = None  # Override Host header for Docker networking
 
 
 @dataclass
@@ -78,6 +79,7 @@ def load_config(config_path: str) -> Config:
             url=doc_data["url"],
             doc_id=doc_data["doc_id"],
             api_key=doc_data["api_key"],
+            host_header=doc_data.get("host_header"),
         )
 
     # Parse tokens

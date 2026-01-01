@@ -23,6 +23,14 @@ documents:
     doc_id: pN0zE5sT2qP7x
     api_key: ${GRIST_PERSONAL_API_KEY}
 
+  # Docker networking example: connect via internal hostname,
+  # but send the external domain in the Host header
+  docker-grist:
+    url: http://grist:8080
+    doc_id: abc123
+    api_key: ${GRIST_API_KEY}
+    host_header: grist.example.com  # Required when Grist validates Host header
+
 # Agent tokens with access scopes
 tokens:
   - token: REPLACE_WITH_GENERATED_TOKEN

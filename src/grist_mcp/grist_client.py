@@ -17,6 +17,8 @@ class GristClient:
         self._doc = document
         self._base_url = f"{document.url.rstrip('/')}/api/docs/{document.doc_id}"
         self._headers = {"Authorization": f"Bearer {document.api_key}"}
+        if document.host_header:
+            self._headers["Host"] = document.host_header
         self._timeout = timeout
 
     async def _request(self, method: str, path: str, **kwargs) -> dict:
