@@ -74,19 +74,34 @@ def _ensure_config(config_path: str) -> bool:
 
     # Check if path is a directory (Docker creates this when mounting missing file)
     if os.path.isdir(path):
-        os.rmdir(path)
+        print(f"ERROR: Config path is a directory: {path}")
+        print()
+        print("This usually means the config file doesn't exist on the host.")
+        print("Please create the config file before starting the container:")
+        print()
+        print(f"  mkdir -p $(dirname {config_path})")
+        print(f"  cat > {config_path} << 'EOF'")
+        print(CONFIG_TEMPLATE)
+        print("EOF")
+        print()
+        return False
 
     if os.path.exists(path):
         return True
 
     # Create template config
-    with open(path, "w") as f:
-        f.write(CONFIG_TEMPLATE)
-
-    print(f"Created template configuration at: {path}")
-    print()
-    print("Please edit this file to configure your Grist documents and agent tokens,")
-    print("then restart the server.")
+    try:
+        with open(path, "w") as f:
+            f.write(CONFIG_TEMPLATE)
+        print(f"Created template configuration at: {path}")
+        print()
+        print("Please edit this file to configure your Grist documents and agent tokens,")
+        print("then restart the server.")
+    except PermissionError:
+        print(f"ERROR: Cannot create config file at: {path}")
+        print()
+        print("Please create the config file manually before starting the container.")
+        print()
     return False
 
 
