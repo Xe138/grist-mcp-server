@@ -1,5 +1,6 @@
 """Main entry point for the MCP server with SSE transport."""
 
+import json
 import os
 import sys
 from typing import Any
@@ -8,12 +9,36 @@ import uvicorn
 from mcp.server.sse import SseServerTransport
 
 from grist_mcp.server import create_server
-from grist_mcp.auth import AuthError
+from grist_mcp.config import load_config
+from grist_mcp.auth import Authenticator, AuthError
 
 
 Scope = dict[str, Any]
 Receive = Any
 Send = Any
+
+
+def _get_bearer_token(scope: Scope) -> str | None:
+    """Extract Bearer token from Authorization header."""
+    headers = dict(scope.get("headers", []))
+    auth_header = headers.get(b"authorization", b"").decode()
+    if auth_header.startswith("Bearer "):
+        return auth_header[7:]
+    return None
+
+
+async def send_error(send: Send, status: int, message: str) -> None:
+    """Send an HTTP error response."""
+    body = json.dumps({"error": message}).encode()
+    await send({
+        "type": "http.response.start",
+        "status": status,
+        "headers": [[b"content-type", b"application/json"]],
+    })
+    await send({
+        "type": "http.response.body",
+        "body": body,
+    })
 
 
 def create_app():
@@ -24,15 +49,27 @@ def create_app():
         print(f"Error: Config file not found at {config_path}", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        server = create_server(config_path)
-    except AuthError as e:
-        print(f"Authentication error: {e}", file=sys.stderr)
-        sys.exit(1)
+    config = load_config(config_path)
+    auth = Authenticator(config)
 
     sse = SseServerTransport("/messages")
 
     async def handle_sse(scope: Scope, receive: Receive, send: Send) -> None:
+        # Extract and validate token from Authorization header
+        token = _get_bearer_token(scope)
+        if not token:
+            await send_error(send, 401, "Missing Authorization header")
+            return
+
+        try:
+            agent = auth.authenticate(token)
+        except AuthError as e:
+            await send_error(send, 401, str(e))
+            return
+
+        # Create a server instance for this authenticated connection
+        server = create_server(auth, agent)
+
         async with sse.connect_sse(scope, receive, send) as streams:
             await server.run(
                 streams[0], streams[1], server.create_initialization_options()

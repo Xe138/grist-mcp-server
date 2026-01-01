@@ -1,13 +1,11 @@
 """MCP server setup and tool registration."""
 
 import json
-import os
 
 from mcp.server import Server
 from mcp.types import Tool, TextContent
 
-from grist_mcp.config import load_config
-from grist_mcp.auth import Authenticator, AuthError, Agent
+from grist_mcp.auth import Authenticator, Agent
 
 from grist_mcp.tools.discovery import list_documents as _list_documents
 from grist_mcp.tools.read import list_tables as _list_tables
@@ -23,27 +21,18 @@ from grist_mcp.tools.schema import modify_column as _modify_column
 from grist_mcp.tools.schema import delete_column as _delete_column
 
 
-def create_server(config_path: str, token: str | None = None) -> Server:
-    """Create and configure the MCP server.
+def create_server(auth: Authenticator, agent: Agent) -> Server:
+    """Create and configure the MCP server for an authenticated agent.
 
     Args:
-        config_path: Path to the configuration YAML file.
-        token: Agent token for authentication. If not provided, reads from
-               GRIST_MCP_TOKEN environment variable.
+        auth: Authenticator instance for permission checks.
+        agent: The authenticated agent for this server instance.
 
-    Raises:
-        AuthError: If token is invalid or not provided.
+    Returns:
+        Configured MCP Server instance.
     """
-    config = load_config(config_path)
-    auth = Authenticator(config)
     server = Server("grist-mcp")
-
-    # Authenticate agent from token (required for all tool calls)
-    auth_token = token or os.environ.get("GRIST_MCP_TOKEN")
-    if not auth_token:
-        raise AuthError("No token provided. Set GRIST_MCP_TOKEN environment variable.")
-
-    _current_agent: Agent = auth.authenticate(auth_token)
+    _current_agent = agent
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:

@@ -9,7 +9,6 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml:ro
     environment:
-      - GRIST_MCP_TOKEN=${GRIST_MCP_TOKEN}
       - CONFIG_PATH=/app/config.yaml
     restart: unless-stopped
     deploy:

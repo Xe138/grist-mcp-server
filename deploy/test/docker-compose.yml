@@ -9,8 +9,6 @@ services:
       - "3000"  # Dynamic port
     environment:
       - CONFIG_PATH=/app/config.yaml
-      - GRIST_MCP_TOKEN=test-token
-      - PORT=3000
     volumes:
       - ../../tests/integration/config.test.yaml:/app/config.yaml:ro
     depends_on:

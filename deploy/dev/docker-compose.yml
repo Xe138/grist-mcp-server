@@ -10,7 +10,6 @@ services:
       - ../../src:/app/src:ro
       - ../../config.yaml:/app/config.yaml:ro
     environment:
-      - GRIST_MCP_TOKEN=${GRIST_MCP_TOKEN}
       - CONFIG_PATH=/app/config.yaml
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]

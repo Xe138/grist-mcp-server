@@ -1,6 +1,8 @@
 import pytest
 from mcp.types import ListToolsRequest
 from grist_mcp.server import create_server
+from grist_mcp.config import load_config
+from grist_mcp.auth import Authenticator
 
 
 @pytest.mark.asyncio
@@ -21,7 +23,10 @@ tokens:
         permissions: [read, write, schema]
 """)
 
-    server = create_server(str(config_file), token="test-token")
+    config = load_config(str(config_file))
+    auth = Authenticator(config)
+    agent = auth.authenticate("test-token")
+    server = create_server(auth, agent)
 
     # Server should have tools registered
     assert server is not None
