@@ -15,50 +15,33 @@ grist-mcp is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 
 - **Security**: Token-based authentication with per-document permission scopes (read, write, schema)
 - **Multi-tenant**: Support multiple Grist instances and documents
 
-## Requirements
+## Quick Start (Docker)
 
-- Python 3.14+
+### Prerequisites
+
+- Docker and Docker Compose
 - Access to one or more Grist documents with API keys
 
-## Installation
+### 1. Create configuration directory
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/grist-mcp.git
-cd grist-mcp
-
-# Install with uv
-uv sync --dev
+mkdir grist-mcp && cd grist-mcp
 ```
 
-## Configuration
-
-Create a `config.yaml` file based on the example:
+### 2. Download configuration files
 
 ```bash
+# Download docker-compose.yml
+curl -O https://raw.githubusercontent.com/Xe138/grist-mcp-server/master/deploy/prod/docker-compose.yml
+
+# Download example config
+curl -O https://raw.githubusercontent.com/Xe138/grist-mcp-server/master/config.yaml.example
 cp config.yaml.example config.yaml
 ```
 
-### Configuration Structure
+### 3. Generate tokens
 
-```yaml
-# Document definitions
-documents:
-  my-document:
-    url: https://docs.getgrist.com      # Grist instance URL
-    doc_id: abcd1234                     # Document ID from URL
-    api_key: ${GRIST_API_KEY}            # API key (supports env vars)
-
-# Agent tokens with access scopes
-tokens:
-  - token: your-secret-token             # Unique token for this agent
-    name: my-agent                       # Human-readable name
-    scope:
-      - document: my-document
-        permissions: [read, write]       # Allowed: read, write, schema
-```
-
-### Generating Tokens
+Generate a secure token for your agent:
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -66,34 +49,53 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 openssl rand -base64 32
 ```
 
-### Environment Variables
+### 4. Configure config.yaml
 
-- `CONFIG_PATH`: Path to config file (default: `/app/config.yaml`)
-- `GRIST_MCP_TOKEN`: Agent token for authentication
-- Config file supports `${VAR}` syntax for API keys
+Edit `config.yaml` to define your Grist documents and agent tokens:
 
-## Usage
+```yaml
+# Document definitions
+documents:
+  my-document:                           # Friendly name (used in token scopes)
+    url: https://docs.getgrist.com       # Your Grist instance URL
+    doc_id: abcd1234efgh5678             # Document ID from the URL
+    api_key: your-grist-api-key          # Grist API key (or use ${ENV_VAR} syntax)
 
-### Running the Server
-
-The server uses SSE (Server-Sent Events) transport over HTTP:
-
-```bash
-# Set your agent token
-export GRIST_MCP_TOKEN="your-agent-token"
-
-# Run with custom config path (defaults to port 3000)
-CONFIG_PATH=./config.yaml uv run python -m grist_mcp.main
-
-# Or specify a custom port
-PORT=8080 CONFIG_PATH=./config.yaml uv run python -m grist_mcp.main
+# Agent tokens with access scopes
+tokens:
+  - token: your-generated-token-here     # The token you generated in step 3
+    name: my-agent                       # Human-readable name
+    scope:
+      - document: my-document            # Must match a document name above
+        permissions: [read, write]       # Allowed: read, write, schema
 ```
 
-The server exposes two endpoints:
-- `http://localhost:3000/sse` - SSE connection endpoint
-- `http://localhost:3000/messages` - Message posting endpoint
+**Finding your Grist document ID**: Open your Grist document in a browser. The URL will look like:
+`https://docs.getgrist.com/abcd1234efgh5678/My-Document` - the document ID is `abcd1234efgh5678`.
 
-### MCP Client Configuration
+**Getting a Grist API key**: In Grist, go to Profile Settings → API → Create API Key.
+
+### 5. Create .env file
+
+Create a `.env` file with your agent token:
+
+```bash
+# .env
+GRIST_MCP_TOKEN=your-generated-token-here
+PORT=3000
+```
+
+The `GRIST_MCP_TOKEN` must match one of the tokens defined in `config.yaml`.
+
+### 6. Start the server
+
+```bash
+docker compose up -d
+```
+
+The server will be available at `http://localhost:3000`.
+
+### 7. Configure your MCP client
 
 Add to your MCP client configuration (e.g., Claude Desktop):
 
@@ -101,19 +103,8 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 {
   "mcpServers": {
     "grist": {
+      "type": "sse",
       "url": "http://localhost:3000/sse"
-    }
-  }
-}
-```
-
-For remote deployments, use the server's public URL:
-
-```json
-{
-  "mcpServers": {
-    "grist": {
-      "url": "https://your-server.example.com/sse"
     }
   }
 }
@@ -149,6 +140,54 @@ For remote deployments, use the server's public URL:
 | `modify_column` | Change a column's type or formula |
 | `delete_column` | Remove a column from a table |
 
+## Configuration Reference
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `3000` |
+| `GRIST_MCP_TOKEN` | Agent authentication token (required) | - |
+| `CONFIG_PATH` | Path to config file inside container | `/app/config.yaml` |
+
+### config.yaml Structure
+
+```yaml
+# Document definitions (each is self-contained)
+documents:
+  budget-2024:
+    url: https://work.getgrist.com
+    doc_id: mK7xB2pQ9mN4v
+    api_key: ${GRIST_WORK_API_KEY}      # Supports environment variable substitution
+
+  personal-tracker:
+    url: https://docs.getgrist.com
+    doc_id: pN0zE5sT2qP7x
+    api_key: ${GRIST_PERSONAL_API_KEY}
+
+# Agent tokens with access scopes
+tokens:
+  - token: your-secure-token-here
+    name: finance-agent
+    scope:
+      - document: budget-2024
+        permissions: [read, write]       # Can read and write
+
+  - token: another-token-here
+    name: readonly-agent
+    scope:
+      - document: budget-2024
+        permissions: [read]              # Read only
+      - document: personal-tracker
+        permissions: [read, write, schema]  # Full access
+```
+
+### Permission Levels
+
+- `read`: Query tables and records, run SQL queries
+- `write`: Add, update, delete records
+- `schema`: Create tables, add/modify/delete columns
+
 ## Security
 
 - **Token-based auth**: Each agent has a unique token with specific document access
@@ -159,10 +198,30 @@ For remote deployments, use the server's public URL:
 
 ## Development
 
-### Running Tests
+### Requirements
+
+- Python 3.14+
+- uv package manager
+
+### Local Setup
 
 ```bash
-uv run pytest -v
+# Clone the repository
+git clone https://github.com/Xe138/grist-mcp-server.git
+cd grist-mcp-server
+
+# Install dependencies
+uv sync --dev
+
+# Run tests
+make test-unit
+```
+
+### Running Locally
+
+```bash
+export GRIST_MCP_TOKEN="your-agent-token"
+CONFIG_PATH=./config.yaml uv run python -m grist_mcp.main
 ```
 
 ### Project Structure
@@ -170,7 +229,6 @@ uv run pytest -v
 ```
 grist-mcp/
 ├── src/grist_mcp/
-│   ├── __init__.py
 │   ├── main.py          # Entry point
 │   ├── server.py        # MCP server setup and tool registration
 │   ├── config.py        # Configuration loading
@@ -182,73 +240,13 @@ grist-mcp/
 │       ├── write.py     # Write operations
 │       └── schema.py    # Schema operations
 ├── tests/
-├── config.yaml.example
-└── pyproject.toml
-```
-
-## Docker Deployment
-
-### Prerequisites
-
-- Docker and Docker Compose
-
-### Quick Start
-
-```bash
-# 1. Copy example files
-cp .env.example .env
-cp config.yaml.example config.yaml
-
-# 2. Edit .env with your tokens and API keys
-#    - Set GRIST_MCP_TOKEN to a secure agent token
-#    - Set your Grist API keys
-
-# 3. Edit config.yaml with your document settings
-#    - Configure your Grist documents
-#    - Set up token scopes and permissions
-
-# 4. Start the server
-docker compose up -d
-```
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `3000` |
-| `GRIST_MCP_TOKEN` | Agent authentication token (required) | - |
-| `CONFIG_PATH` | Path to config file inside container | `/app/config.yaml` |
-| `GRIST_*_API_KEY` | Grist API keys referenced in config.yaml | - |
-
-### Using Prebuilt Images
-
-To use a prebuilt image from a container registry:
-
-```yaml
-# docker-compose.yaml
-services:
-  grist-mcp:
-    image: your-registry/grist-mcp:latest
-    ports:
-      - "${PORT:-3000}:3000"
-    volumes:
-      - ./config.yaml:/app/config.yaml:ro
-    env_file:
-      - .env
-    restart: unless-stopped
-```
-
-### Building Locally
-
-```bash
-# Build the image
-docker build -t grist-mcp .
-
-# Run directly
-docker run -p 3000:3000 \
-  -v $(pwd)/config.yaml:/app/config.yaml:ro \
-  --env-file .env \
-  grist-mcp
+│   ├── unit/            # Unit tests
+│   └── integration/     # Integration tests
+├── deploy/
+│   ├── dev/             # Development docker-compose
+│   ├── test/            # Test docker-compose
+│   └── prod/            # Production docker-compose
+└── config.yaml.example
 ```
 
 ## License
