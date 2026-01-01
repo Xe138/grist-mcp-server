@@ -25,7 +25,7 @@ jobs:
       - name: Determine registry
         id: registry
         run: |
-          if [ "${{ vars.GITEA_ACTIONS }}" = "true" ]; then
+          if [ "${GITEA_ACTIONS}" = "true" ]; then
             # Gitea: use server URL as registry
             REGISTRY="${{ github.server_url }}"
             REGISTRY="${REGISTRY#https://}"
