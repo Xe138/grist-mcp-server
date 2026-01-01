@@ -1,4 +1,4 @@
-# Production environment - resource limits, logging, restart policy
+# Production environment
 services:
   grist-mcp:
     image: ghcr.io/xe138/grist-mcp-server:latest
@@ -10,18 +10,6 @@ services:
       - CONFIG_PATH=/app/config.yaml
       - EXTERNAL_PORT=${PORT:-3000}
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1"
-        reservations:
-          memory: 128M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3000/health')"]
       interval: 30s
