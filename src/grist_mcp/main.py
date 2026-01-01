@@ -164,24 +164,13 @@ def create_app(config: Config):
 def _print_mcp_config(port: int, tokens: list) -> None:
     """Print Claude Code MCP configuration."""
     print()
-    print("Claude Code MCP configuration:")
-    print("─" * 50)
-    print(f'''\
-{{
-  "mcpServers": {{
-    "grist": {{
-      "url": "http://localhost:{port}/sse",
-      "headers": {{
-        "Authorization": "Bearer YOUR_TOKEN"
-      }}
-    }}
-  }}
-}}''')
-    print("─" * 50)
-    print()
-    print("Available tokens:")
+    print("Claude Code MCP configuration (copy-paste to add):")
     for t in tokens:
-        print(f"  - {t.name}: {t.token}")
+        config = (
+            f'{{"type": "sse", "url": "http://localhost:{port}/sse", '
+            f'"headers": {{"Authorization": "Bearer {t.token}"}}}}'
+        )
+        print(f"  claude mcp add-json grist-{t.name} '{config}'")
     print()
 
 
