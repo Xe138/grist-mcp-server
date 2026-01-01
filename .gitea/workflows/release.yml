@@ -10,7 +10,16 @@ env:
   IMAGE_NAME: bill/grist-mcp
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        run: echo "Tests would run here"
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
