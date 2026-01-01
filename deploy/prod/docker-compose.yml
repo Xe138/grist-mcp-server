@@ -1,9 +1,7 @@
 # Production environment - resource limits, logging, restart policy
 services:
   grist-mcp:
-    build:
-      context: ../..
-      dockerfile: Dockerfile
+    image: ghcr.io/xe138/grist-mcp-server:latest
     ports:
       - "${PORT:-3000}:3000"
     volumes:
