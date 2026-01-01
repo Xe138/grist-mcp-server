@@ -11,7 +11,7 @@ env:
 
 jobs:
   build:
-    runs-on: linux_x64
+    runs-on: ubuntu-docker
     steps:
       - name: Checkout repository
         run: |
