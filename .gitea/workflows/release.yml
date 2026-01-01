@@ -10,27 +10,12 @@ env:
   IMAGE_NAME: bill/grist-mcp
 
 jobs:
-  test:
-    runs-on: linux_x64
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run tests
-        run: echo "Tests would run here"
-
   build:
-    needs: test
     runs-on: linux_x64
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Debug environment
+      - name: Checkout repository
         run: |
-          echo "PATH: $PATH"
-          echo "Which docker: $(which docker || echo 'not found')"
-          echo "Docker version: $(docker --version || echo 'docker not available')"
-          ls -la /usr/bin/docker || echo "/usr/bin/docker not found"
-          ls -la /var/run/docker.sock || echo "docker.sock not found"
+          git clone --depth 1 --branch ${GITHUB_REF_NAME} ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git .
 
       - name: Extract version from tag
         id: version
