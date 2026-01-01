@@ -10,8 +10,6 @@ env:
 
 jobs:
   build:
-    # Skip on Gitea - runner lacks Docker
-    if: ${{ !env.GITEA_ACTIONS }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
