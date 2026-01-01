@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-integration build dev-up dev-down pre-deploy clean
+.PHONY: help test test-unit test-integration build dev dev-up dev-down pre-deploy clean
 
 VERBOSE ?= 0
 
@@ -20,7 +20,10 @@ test-integration: ## Run integration tests only (starts/stops containers)
 build: ## Build Docker image
 	docker build -t grist-mcp:latest .
 
-dev-up: ## Start development environment
+dev: ## Start development environment (attached, streams logs)
+	cd deploy/dev && docker compose up --build
+
+dev-up: ## Start development environment (detached)
 	cd deploy/dev && docker compose up -d --build
 
 dev-down: ## Stop development environment
