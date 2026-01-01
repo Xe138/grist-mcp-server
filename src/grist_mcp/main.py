@@ -161,13 +161,13 @@ def create_app(config: Config):
     return app
 
 
-def _print_mcp_config(port: int, tokens: list) -> None:
+def _print_mcp_config(external_port: int, tokens: list) -> None:
     """Print Claude Code MCP configuration."""
     print()
     print("Claude Code MCP configuration (copy-paste to add):")
     for t in tokens:
         config = (
-            f'{{"type": "sse", "url": "http://localhost:{port}/sse", '
+            f'{{"type": "sse", "url": "http://localhost:{external_port}/sse", '
             f'"headers": {{"Authorization": "Bearer {t.token}"}}}}'
         )
         print(f"  claude mcp add-json grist-{t.name} '{config}'")
@@ -177,6 +177,7 @@ def _print_mcp_config(port: int, tokens: list) -> None:
 def main():
     """Run the SSE server."""
     port = int(os.environ.get("PORT", "3000"))
+    external_port = int(os.environ.get("EXTERNAL_PORT", str(port)))
     config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
 
     if not _ensure_config(config_path):
@@ -188,7 +189,7 @@ def main():
     print(f"  SSE endpoint: http://0.0.0.0:{port}/sse")
     print(f"  Messages endpoint: http://0.0.0.0:{port}/messages")
 
-    _print_mcp_config(port, config.tokens)
+    _print_mcp_config(external_port, config.tokens)
 
     app = create_app(config)
     uvicorn.run(app, host="0.0.0.0", port=port)

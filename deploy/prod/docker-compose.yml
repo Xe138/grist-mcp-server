@@ -10,6 +10,7 @@ services:
       - ./config.yaml:/app/config.yaml:ro
     environment:
       - CONFIG_PATH=/app/config.yaml
+      - EXTERNAL_PORT=${PORT:-3000}
     restart: unless-stopped
     deploy:
       resources:
