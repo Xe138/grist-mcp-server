@@ -160,7 +160,7 @@ async def test_add_column(client, httpx_mock: HTTPXMock):
 @pytest.mark.asyncio
 async def test_modify_column(client, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url="https://grist.example.com/api/docs/abc123/tables/Table1/columns/Amount",
+        url="https://grist.example.com/api/docs/abc123/tables/Table1/columns",
         method="PATCH",
         json={},
     )

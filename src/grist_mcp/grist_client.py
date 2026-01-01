@@ -160,7 +160,8 @@ class GristClient:
         if formula is not None:
             fields["formula"] = formula
 
-        await self._request("PATCH", f"/tables/{table}/columns/{column_id}", json={"fields": fields})
+        payload = {"columns": [{"id": column_id, "fields": fields}]}
+        await self._request("PATCH", f"/tables/{table}/columns", json=payload)
 
     async def delete_column(self, table: str, column_id: str) -> None:
         """Delete a column from a table."""
