@@ -8,8 +8,9 @@ services:
       - "${PORT:-3000}:3000"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
-    env_file:
-      - .env
+    environment:
+      - GRIST_MCP_TOKEN=${GRIST_MCP_TOKEN}
+      - CONFIG_PATH=/app/config.yaml
     restart: unless-stopped
     deploy:
       resources:
