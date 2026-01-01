@@ -9,7 +9,7 @@ import uvicorn
 from mcp.server.sse import SseServerTransport
 
 from grist_mcp.server import create_server
-from grist_mcp.config import load_config
+from grist_mcp.config import Config, load_config
 from grist_mcp.auth import Authenticator, AuthError
 
 
@@ -90,14 +90,8 @@ def _ensure_config(config_path: str) -> bool:
     return False
 
 
-def create_app():
+def create_app(config: Config):
     """Create the ASGI application."""
-    config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
-
-    if not _ensure_config(config_path):
-        sys.exit(0)
-
-    config = load_config(config_path)
     auth = Authenticator(config)
 
     sse = SseServerTransport("/messages")
@@ -167,13 +161,47 @@ def create_app():
     return app
 
 
+def _print_mcp_config(port: int, tokens: list) -> None:
+    """Print Claude Code MCP configuration."""
+    print()
+    print("Claude Code MCP configuration:")
+    print("─" * 50)
+    print(f'''\
+{{
+  "mcpServers": {{
+    "grist": {{
+      "url": "http://localhost:{port}/sse",
+      "headers": {{
+        "Authorization": "Bearer YOUR_TOKEN"
+      }}
+    }}
+  }}
+}}''')
+    print("─" * 50)
+    print()
+    print("Available tokens:")
+    for t in tokens:
+        print(f"  - {t.name}: {t.token}")
+    print()
+
+
 def main():
     """Run the SSE server."""
     port = int(os.environ.get("PORT", "3000"))
-    app = create_app()
+    config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
+
+    if not _ensure_config(config_path):
+        return
+
+    config = load_config(config_path)
+
     print(f"Starting grist-mcp SSE server on port {port}")
     print(f"  SSE endpoint: http://0.0.0.0:{port}/sse")
     print(f"  Messages endpoint: http://0.0.0.0:{port}/messages")
+
+    _print_mcp_config(port, config.tokens)
+
+    app = create_app(config)
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 
