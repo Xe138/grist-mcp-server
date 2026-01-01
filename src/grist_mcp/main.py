@@ -41,13 +41,61 @@ async def send_error(send: Send, status: int, message: str) -> None:
     })
 
 
+CONFIG_TEMPLATE = """\
+# grist-mcp configuration
+#
+# Token Generation:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+#   openssl rand -base64 32
+
+# Document definitions
+documents:
+  my-document:
+    url: https://docs.getgrist.com
+    doc_id: YOUR_DOC_ID
+    api_key: ${GRIST_API_KEY}
+
+# Agent tokens with access scopes
+tokens:
+  - token: REPLACE_WITH_GENERATED_TOKEN
+    name: my-agent
+    scope:
+      - document: my-document
+        permissions: [read, write]
+"""
+
+
+def _ensure_config(config_path: str) -> bool:
+    """Ensure config file exists. Creates template if missing.
+
+    Returns True if config is ready, False if template was created.
+    """
+    path = os.path.abspath(config_path)
+
+    # Check if path is a directory (Docker creates this when mounting missing file)
+    if os.path.isdir(path):
+        os.rmdir(path)
+
+    if os.path.exists(path):
+        return True
+
+    # Create template config
+    with open(path, "w") as f:
+        f.write(CONFIG_TEMPLATE)
+
+    print(f"Created template configuration at: {path}")
+    print()
+    print("Please edit this file to configure your Grist documents and agent tokens,")
+    print("then restart the server.")
+    return False
+
+
 def create_app():
     """Create the ASGI application."""
     config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
 
-    if not os.path.exists(config_path):
-        print(f"Error: Config file not found at {config_path}", file=sys.stderr)
-        sys.exit(1)
+    if not _ensure_config(config_path):
+        sys.exit(0)
 
     config = load_config(config_path)
     auth = Authenticator(config)

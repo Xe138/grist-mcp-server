@@ -1,0 +1,30 @@
+# Development configuration for grist-mcp
+#
+# Token Generation:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+#   openssl rand -base64 32
+
+# Document definitions
+documents:
+  mcp-test-document:
+    url: https://grist.bballou.com/
+    doc_id: mVQvKTAyZC1FWZQgfuVeHC
+    api_key: 83a03433a61ee9d2f2bf055d7f4518bedef0421a
+
+# Agent tokens with access scopes
+tokens:
+  - token: test-token-all-permissions
+    name: dev-agent
+    scope:
+      - document: mcp-test-document
+        permissions: [read, write, schema]
+  - token: test-token-read-permissions
+    name: dev-agent-read
+    scope:
+      - document: mcp-test-document
+        permissions: [read]
+  - token: test-token-no-schema-permissions
+    name: dev-agent-no-schema
+    scope:
+      - document: mcp-test-document
+        permissions: [read, write]
