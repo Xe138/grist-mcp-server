@@ -24,6 +24,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug environment
+        run: |
+          echo "PATH: $PATH"
+          echo "Which docker: $(which docker || echo 'not found')"
+          echo "Docker version: $(docker --version || echo 'docker not available')"
+          ls -la /usr/bin/docker || echo "/usr/bin/docker not found"
+          ls -la /var/run/docker.sock || echo "docker.sock not found"
+
       - name: Extract version from tag
         id: version
         run: |
