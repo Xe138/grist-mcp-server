@@ -5,7 +5,7 @@ import json
 from mcp.server import Server
 from mcp.types import Tool, TextContent
 
-from grist_mcp.auth import Authenticator, Agent
+from grist_mcp.auth import Authenticator, Agent, AuthError
 
 from grist_mcp.tools.discovery import list_documents as _list_documents
 from grist_mcp.tools.read import list_tables as _list_tables
