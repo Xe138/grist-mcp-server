@@ -150,6 +150,7 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 | `GRIST_MCP_TOKEN` | Agent authentication token (required) | - |
 | `CONFIG_PATH` | Path to config file inside container | `/app/config.yaml` |
 | `LOG_LEVEL` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
+| `GRIST_MCP_URL` | Public URL of this server (for session proxy tokens) | - |
 
 ### config.yaml Structure
 
