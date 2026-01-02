@@ -11,6 +11,7 @@ from mcp.server.sse import SseServerTransport
 from grist_mcp.server import create_server
 from grist_mcp.config import Config, load_config
 from grist_mcp.auth import Authenticator, AuthError
+from grist_mcp.logging import setup_logging
 
 
 Scope = dict[str, Any]
@@ -194,6 +195,8 @@ def main():
     port = int(os.environ.get("PORT", "3000"))
     external_port = int(os.environ.get("EXTERNAL_PORT", str(port)))
     config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
+
+    setup_logging()
 
     if not _ensure_config(config_path):
         return
