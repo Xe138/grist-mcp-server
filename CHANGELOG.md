@@ -5,13 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2026-01-02
 
 ### Added
-- Session token proxy: agents can request short-lived tokens for bulk operations
+
+#### Session Token Proxy
+- **Session token proxy**: Agents can request short-lived tokens for bulk operations
 - `get_proxy_documentation` MCP tool: returns complete proxy API spec
-- `request_session_token` MCP tool: creates scoped session tokens
+- `request_session_token` MCP tool: creates scoped session tokens with TTL (max 1 hour)
 - `POST /api/v1/proxy` HTTP endpoint: accepts session tokens for direct API access
+- Supports all 11 Grist operations (read, write, schema) via HTTP
 
 ## [1.1.0] - 2026-01-02
 
