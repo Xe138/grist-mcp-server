@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `request_session_token` MCP tool: creates scoped session tokens
 - `POST /api/v1/proxy` HTTP endpoint: accepts session tokens for direct API access
 
+## [1.1.0] - 2026-01-02
+
+### Added
+
+#### Logging
+- **Tool Call Logging**: Human-readable logs for every MCP tool call with agent identity, document, stats, and duration
+- **Token Truncation**: Secure token display in logs (first/last 3 chars only)
+- **Stats Extraction**: Meaningful operation stats per tool (e.g., "42 records", "3 tables")
+- **LOG_LEVEL Support**: Configure logging verbosity via environment variable (DEBUG, INFO, WARNING, ERROR)
+- **Health Check Suppression**: `/health` requests logged at DEBUG level to reduce noise
+
+#### Log Format
+```
+2026-01-02 10:15:23 | agent-name (abc...xyz) | get_records | sales | 42 records | success | 125ms
+```
+
+- Pipe-delimited format for easy parsing
+- Multi-line error details with indentation
+- Duration tracking in milliseconds
+
 ## [1.0.0] - 2026-01-01
 
 Initial release of grist-mcp, an MCP server for AI agents to interact with Grist spreadsheets.

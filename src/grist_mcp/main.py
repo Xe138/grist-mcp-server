@@ -1,6 +1,7 @@
 """Main entry point for the MCP server with SSE transport."""
 
 import json
+import logging
 import os
 import sys
 from typing import Any
@@ -13,6 +14,7 @@ from grist_mcp.config import Config, load_config
 from grist_mcp.auth import Authenticator, AuthError
 from grist_mcp.session import SessionTokenManager
 from grist_mcp.proxy import parse_proxy_request, dispatch_proxy_request, ProxyError
+from grist_mcp.logging import setup_logging
 
 
 Scope = dict[str, Any]
@@ -260,11 +262,28 @@ def _print_mcp_config(external_port: int, tokens: list) -> None:
     print()
 
 
+class UvicornAccessFilter(logging.Filter):
+    """Suppress uvicorn access logs unless LOG_LEVEL is DEBUG.
+
+    At INFO level, only grist_mcp tool logs are shown.
+    At DEBUG level, all HTTP requests are visible.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Only show uvicorn access logs at DEBUG level
+        return os.environ.get("LOG_LEVEL", "INFO").upper() == "DEBUG"
+
+
 def main():
     """Run the SSE server."""
     port = int(os.environ.get("PORT", "3000"))
     external_port = int(os.environ.get("EXTERNAL_PORT", str(port)))
     config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
+
+    setup_logging()
+
+    # Suppress uvicorn access logs at INFO level (only show tool logs)
+    logging.getLogger("uvicorn.access").addFilter(UvicornAccessFilter())
 
     if not _ensure_config(config_path):
         return
@@ -278,7 +297,13 @@ def main():
     _print_mcp_config(external_port, config.tokens)
 
     app = create_app(config)
-    uvicorn.run(app, host="0.0.0.0", port=port)
+
+    # Configure uvicorn logging to reduce health check noise
+    log_config = uvicorn.config.LOGGING_CONFIG
+    log_config["formatters"]["default"]["fmt"] = "%(message)s"
+    log_config["formatters"]["access"]["fmt"] = "%(message)s"
+
+    uvicorn.run(app, host="0.0.0.0", port=port, log_config=log_config)
 
 
 if __name__ == "__main__":
