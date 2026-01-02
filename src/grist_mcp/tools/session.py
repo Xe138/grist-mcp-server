@@ -7,6 +7,7 @@ from grist_mcp.session import SessionTokenManager
 PROXY_DOCUMENTATION = {
     "description": "HTTP proxy API for bulk data operations. Use request_session_token to get a short-lived token, then call the proxy endpoint directly from scripts.",
     "endpoint": "POST /api/v1/proxy",
+    "endpoint_note": "The full URL is returned in the 'proxy_url' field of request_session_token response",
     "authentication": "Bearer token in Authorization header",
     "request_format": {
         "method": "Operation name (required)",
@@ -88,11 +89,12 @@ PROXY_DOCUMENTATION = {
 import requests
 import sys
 
+# Use token and proxy_url from request_session_token response
 token = sys.argv[1]
-host = sys.argv[2]
+proxy_url = sys.argv[2]
 
 response = requests.post(
-    f'{host}/api/v1/proxy',
+    proxy_url,
     headers={'Authorization': f'Bearer {token}'},
     json={
         'method': 'add_records',
