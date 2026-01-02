@@ -53,3 +53,29 @@ def test_validate_token_returns_session_for_valid_token():
     assert session is not None
     assert session.document == "sales"
     assert session.agent_name == "test-agent"
+
+
+def test_validate_token_returns_none_for_unknown_token():
+    manager = SessionTokenManager()
+
+    session = manager.validate_token("sess_unknown_token")
+
+    assert session is None
+
+
+def test_validate_token_returns_none_for_expired_token():
+    manager = SessionTokenManager()
+    created = manager.create_token(
+        agent_name="test-agent",
+        document="sales",
+        permissions=["read"],
+        ttl_seconds=1,
+    )
+
+    # Wait for expiry (we'll use time manipulation instead)
+    import time
+    time.sleep(1.1)
+
+    session = manager.validate_token(created.token)
+
+    assert session is None
