@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Session token proxy: agents can request short-lived tokens for bulk operations
+- `get_proxy_documentation` MCP tool: returns complete proxy API spec
+- `request_session_token` MCP tool: creates scoped session tokens
+- `POST /api/v1/proxy` HTTP endpoint: accepts session tokens for direct API access
+
 ## [1.0.0] - 2026-01-01
 
 Initial release of grist-mcp, an MCP server for AI agents to interact with Grist spreadsheets.
