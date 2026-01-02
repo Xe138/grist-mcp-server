@@ -72,3 +72,27 @@ async def test_dispatch_add_records(mock_session, mock_auth):
     assert result["success"] is True
     assert result["data"]["record_ids"] == [1, 2, 3]
     mock_client.add_records.assert_called_once_with("Orders", [{"item": "Widget"}])
+
+
+@pytest.mark.asyncio
+async def test_dispatch_denies_without_permission(mock_auth):
+    # Session only has read permission
+    session = SessionToken(
+        token="sess_test",
+        document="sales",
+        permissions=["read"],  # No write
+        agent_name="test-agent",
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc),
+    )
+
+    request = ProxyRequest(
+        method="add_records",  # Requires write
+        table="Orders",
+        records=[{"item": "Widget"}],
+    )
+
+    with pytest.raises(ProxyError) as exc_info:
+        await dispatch_proxy_request(request, session, mock_auth)
+
+    assert exc_info.value.code == "UNAUTHORIZED"
