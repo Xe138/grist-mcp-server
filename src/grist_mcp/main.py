@@ -1,6 +1,7 @@
 """Main entry point for the MCP server with SSE transport."""
 
 import json
+import logging
 import os
 import sys
 from typing import Any
@@ -190,6 +191,18 @@ def _print_mcp_config(external_port: int, tokens: list) -> None:
     print()
 
 
+class HealthCheckFilter(logging.Filter):
+    """Filter out health check requests at INFO level."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        if "/health" in message:
+            # Downgrade to DEBUG by changing the level
+            record.levelno = logging.DEBUG
+            record.levelname = "DEBUG"
+        return True
+
+
 def main():
     """Run the SSE server."""
     port = int(os.environ.get("PORT", "3000"))
@@ -197,6 +210,9 @@ def main():
     config_path = os.environ.get("CONFIG_PATH", "/app/config.yaml")
 
     setup_logging()
+
+    # Add health check filter to uvicorn access logger
+    logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
 
     if not _ensure_config(config_path):
         return
@@ -210,7 +226,13 @@ def main():
     _print_mcp_config(external_port, config.tokens)
 
     app = create_app(config)
-    uvicorn.run(app, host="0.0.0.0", port=port)
+
+    # Configure uvicorn logging to reduce health check noise
+    log_config = uvicorn.config.LOGGING_CONFIG
+    log_config["formatters"]["default"]["fmt"] = "%(message)s"
+    log_config["formatters"]["access"]["fmt"] = "%(message)s"
+
+    uvicorn.run(app, host="0.0.0.0", port=port, log_config=log_config)
 
 
 if __name__ == "__main__":
