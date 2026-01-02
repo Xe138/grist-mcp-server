@@ -4,6 +4,9 @@ import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
+MAX_TTL_SECONDS = 3600  # 1 hour
+DEFAULT_TTL_SECONDS = 300  # 5 minutes
+
 
 @dataclass
 class SessionToken:
@@ -27,11 +30,17 @@ class SessionTokenManager:
         agent_name: str,
         document: str,
         permissions: list[str],
-        ttl_seconds: int,
+        ttl_seconds: int = DEFAULT_TTL_SECONDS,
     ) -> SessionToken:
-        """Create a new session token."""
+        """Create a new session token.
+
+        TTL is capped at MAX_TTL_SECONDS (1 hour).
+        """
         now = datetime.now(timezone.utc)
         token_str = f"sess_{secrets.token_urlsafe(32)}"
+
+        # Cap TTL at maximum
+        effective_ttl = min(ttl_seconds, MAX_TTL_SECONDS)
 
         session = SessionToken(
             token=token_str,
@@ -39,7 +48,7 @@ class SessionTokenManager:
             permissions=permissions,
             agent_name=agent_name,
             created_at=now,
-            expires_at=now + timedelta(seconds=ttl_seconds),
+            expires_at=now + timedelta(seconds=effective_ttl),
         )
 
         self._tokens[token_str] = session
