@@ -1,5 +1,9 @@
 """Session token tools for HTTP proxy access."""
 
+from grist_mcp.auth import Agent, Authenticator, AuthError, Permission
+from grist_mcp.session import SessionTokenManager
+
+
 PROXY_DOCUMENTATION = {
     "description": "HTTP proxy API for bulk data operations. Use request_session_token to get a short-lived token, then call the proxy endpoint directly from scripts.",
     "endpoint": "POST /api/v1/proxy",
@@ -104,3 +108,41 @@ print(response.json())
 async def get_proxy_documentation() -> dict:
     """Return complete documentation for the HTTP proxy API."""
     return PROXY_DOCUMENTATION
+
+
+async def request_session_token(
+    agent: Agent,
+    auth: Authenticator,
+    token_manager: SessionTokenManager,
+    document: str,
+    permissions: list[str],
+    ttl_seconds: int = 300,
+) -> dict:
+    """Request a short-lived session token for HTTP proxy access.
+
+    The token can only grant permissions the agent already has.
+    """
+    # Verify agent has access to the document
+    # Check each requested permission
+    for perm_str in permissions:
+        try:
+            perm = Permission(perm_str)
+        except ValueError:
+            raise AuthError(f"Invalid permission: {perm_str}")
+        auth.authorize(agent, document, perm)
+
+    # Create the session token
+    session = token_manager.create_token(
+        agent_name=agent.name,
+        document=document,
+        permissions=permissions,
+        ttl_seconds=ttl_seconds,
+    )
+
+    return {
+        "token": session.token,
+        "document": session.document,
+        "permissions": session.permissions,
+        "expires_at": session.expires_at.isoformat(),
+        "proxy_url": "/api/v1/proxy",
+    }
