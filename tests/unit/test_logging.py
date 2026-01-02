@@ -150,3 +150,21 @@ class TestSetupLogging:
 
         logger = logging.getLogger("grist_mcp")
         assert logger.level == logging.INFO
+
+
+class TestGetLogger:
+    def test_returns_child_logger(self):
+        from grist_mcp.logging import get_logger
+
+        logger = get_logger("server")
+        assert logger.name == "grist_mcp.server"
+
+    def test_inherits_parent_level(self, monkeypatch):
+        monkeypatch.setenv("LOG_LEVEL", "WARNING")
+
+        from grist_mcp.logging import setup_logging, get_logger
+        setup_logging()
+
+        logger = get_logger("test")
+        # Child inherits from parent when level is NOTSET
+        assert logger.getEffectiveLevel() == logging.WARNING

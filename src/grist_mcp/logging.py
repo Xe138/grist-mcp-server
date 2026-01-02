@@ -104,3 +104,8 @@ def format_tool_log(
         line += f"\n    {error_message}"
 
     return line
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Get a child logger under the grist_mcp namespace."""
+    return logging.getLogger(f"grist_mcp.{name}")
