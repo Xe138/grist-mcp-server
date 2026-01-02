@@ -12,12 +12,14 @@ from mcp.client.sse import sse_client
 
 GRIST_MCP_URL = os.environ.get("GRIST_MCP_URL", "http://localhost:3000")
 MOCK_GRIST_URL = os.environ.get("MOCK_GRIST_URL", "http://localhost:8484")
+GRIST_MCP_TOKEN = os.environ.get("GRIST_MCP_TOKEN", "test-token")
 
 
 @asynccontextmanager
 async def create_mcp_session():
     """Create and yield an MCP session."""
-    async with sse_client(f"{GRIST_MCP_URL}/sse") as (read_stream, write_stream):
+    headers = {"Authorization": f"Bearer {GRIST_MCP_TOKEN}"}
+    async with sse_client(f"{GRIST_MCP_URL}/sse", headers=headers) as (read_stream, write_stream):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             yield session
@@ -194,7 +196,7 @@ async def test_all_tools(services_ready):
         data = json.loads(result.content[0].text)
         assert "modified" in data
         log = get_mock_request_log()
-        patch_cols = [e for e in log if e["method"] == "PATCH" and "/columns/" in e["path"]]
+        patch_cols = [e for e in log if e["method"] == "PATCH" and "/columns" in e["path"]]
         assert len(patch_cols) >= 1
 
         # Test delete_column

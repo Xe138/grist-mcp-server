@@ -9,12 +9,14 @@ from mcp.client.sse import sse_client
 
 
 GRIST_MCP_URL = os.environ.get("GRIST_MCP_URL", "http://localhost:3000")
+GRIST_MCP_TOKEN = os.environ.get("GRIST_MCP_TOKEN", "test-token")
 
 
 @asynccontextmanager
 async def create_mcp_session():
     """Create and yield an MCP session."""
-    async with sse_client(f"{GRIST_MCP_URL}/sse") as (read_stream, write_stream):
+    headers = {"Authorization": f"Bearer {GRIST_MCP_TOKEN}"}
+    async with sse_client(f"{GRIST_MCP_URL}/sse", headers=headers) as (read_stream, write_stream):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             yield session
@@ -44,12 +46,14 @@ async def test_mcp_protocol_compliance(services_ready):
             "add_column",
             "modify_column",
             "delete_column",
+            "get_proxy_documentation",
+            "request_session_token",
         ]
 
         for expected in expected_tools:
             assert expected in tool_names, f"Missing tool: {expected}"
 
-        assert len(result.tools) == 12, f"Expected 12 tools, got {len(result.tools)}"
+        assert len(result.tools) == 14, f"Expected 14 tools, got {len(result.tools)}"
 
         # Test 3: All tools have descriptions
         for tool in result.tools:

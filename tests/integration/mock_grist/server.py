@@ -178,6 +178,15 @@ async def modify_column(request):
     return JSONResponse({})
 
 
+async def modify_columns(request):
+    """PATCH /api/docs/{doc_id}/tables/{table_id}/columns - batch modify columns"""
+    doc_id = request.path_params["doc_id"]
+    table_id = request.path_params["table_id"]
+    body = await request.json()
+    log_request("PATCH", f"/api/docs/{doc_id}/tables/{table_id}/columns", body)
+    return JSONResponse({})
+
+
 async def delete_column(request):
     """DELETE /api/docs/{doc_id}/tables/{table_id}/columns/{col_id}"""
     doc_id = request.path_params["doc_id"]
@@ -199,6 +208,7 @@ app = Starlette(
         Route("/api/docs/{doc_id}/tables", endpoint=create_tables, methods=["POST"]),
         Route("/api/docs/{doc_id}/tables/{table_id}/columns", endpoint=get_table_columns),
         Route("/api/docs/{doc_id}/tables/{table_id}/columns", endpoint=add_column, methods=["POST"]),
+        Route("/api/docs/{doc_id}/tables/{table_id}/columns", endpoint=modify_columns, methods=["PATCH"]),
         Route("/api/docs/{doc_id}/tables/{table_id}/columns/{col_id}", endpoint=modify_column, methods=["PATCH"]),
         Route("/api/docs/{doc_id}/tables/{table_id}/columns/{col_id}", endpoint=delete_column, methods=["DELETE"]),
         Route("/api/docs/{doc_id}/tables/{table_id}/records", endpoint=get_records),

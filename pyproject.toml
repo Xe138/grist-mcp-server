@@ -28,3 +28,6 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests/unit", "tests/integration"]
+markers = [
+    "integration: marks tests as integration tests (require Docker containers)",
+]
