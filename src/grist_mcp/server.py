@@ -1,11 +1,15 @@
 """MCP server setup and tool registration."""
 
 import json
+import time
 
 from mcp.server import Server
 from mcp.types import Tool, TextContent
 
 from grist_mcp.auth import Authenticator, Agent, AuthError
+from grist_mcp.logging import get_logger, extract_stats, format_tool_log
+
+logger = get_logger("server")
 
 from grist_mcp.tools.discovery import list_documents as _list_documents
 from grist_mcp.tools.read import list_tables as _list_tables
@@ -207,6 +211,22 @@ def create_server(auth: Authenticator, agent: Agent) -> Server:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+        start_time = time.time()
+        document = arguments.get("document")
+
+        # Log arguments at DEBUG level
+        logger.debug(
+            format_tool_log(
+                agent_name=_current_agent.name,
+                token=_current_agent.token,
+                tool=name,
+                document=document,
+                stats=f"args: {json.dumps(arguments)}",
+                status="started",
+                duration_ms=0,
+            )
+        )
+
         try:
             if name == "list_documents":
                 result = await _list_documents(_current_agent)
@@ -268,11 +288,53 @@ def create_server(auth: Authenticator, agent: Agent) -> Server:
             else:
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
+            duration_ms = int((time.time() - start_time) * 1000)
+            stats = extract_stats(name, arguments, result)
+
+            logger.info(
+                format_tool_log(
+                    agent_name=_current_agent.name,
+                    token=_current_agent.token,
+                    tool=name,
+                    document=document,
+                    stats=stats,
+                    status="success",
+                    duration_ms=duration_ms,
+                )
+            )
+
             return [TextContent(type="text", text=json.dumps(result))]
 
         except AuthError as e:
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.warning(
+                format_tool_log(
+                    agent_name=_current_agent.name,
+                    token=_current_agent.token,
+                    tool=name,
+                    document=document,
+                    stats="-",
+                    status="auth_error",
+                    duration_ms=duration_ms,
+                    error_message=str(e),
+                )
+            )
             return [TextContent(type="text", text=f"Authorization error: {e}")]
+
         except Exception as e:
+            duration_ms = int((time.time() - start_time) * 1000)
+            logger.error(
+                format_tool_log(
+                    agent_name=_current_agent.name,
+                    token=_current_agent.token,
+                    tool=name,
+                    document=document,
+                    stats="-",
+                    status="error",
+                    duration_ms=duration_ms,
+                    error_message=str(e),
+                )
+            )
             return [TextContent(type="text", text=f"Error: {e}")]
 
     return server
