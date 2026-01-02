@@ -53,5 +53,48 @@ tokens:
     assert "modify_column" in tool_names
     assert "delete_column" in tool_names
 
-    # Should have all 12 tools
-    assert len(result.root.tools) == 12
+    # Session tools (always registered)
+    assert "get_proxy_documentation" in tool_names
+    assert "request_session_token" in tool_names
+
+    # Should have all 14 tools
+    assert len(result.root.tools) == 14
+
+
+@pytest.mark.asyncio
+async def test_create_server_registers_session_tools(tmp_path):
+    from grist_mcp.session import SessionTokenManager
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("""
+documents:
+  test-doc:
+    url: https://grist.example.com
+    doc_id: abc123
+    api_key: test-key
+
+tokens:
+  - token: valid-token
+    name: test-agent
+    scope:
+      - document: test-doc
+        permissions: [read, write, schema]
+""")
+
+    config = load_config(str(config_file))
+    auth = Authenticator(config)
+    agent = auth.authenticate("valid-token")
+    token_manager = SessionTokenManager()
+    server = create_server(auth, agent, token_manager)
+
+    # Get the list_tools handler and call it
+    handler = server.request_handlers.get(ListToolsRequest)
+    assert handler is not None
+
+    req = ListToolsRequest(method="tools/list")
+    result = await handler(req)
+
+    tool_names = [t.name for t in result.root.tools]
+
+    assert "get_proxy_documentation" in tool_names
+    assert "request_session_token" in tool_names

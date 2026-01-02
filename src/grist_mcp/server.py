@@ -6,6 +6,9 @@ from mcp.server import Server
 from mcp.types import Tool, TextContent
 
 from grist_mcp.auth import Authenticator, Agent, AuthError
+from grist_mcp.session import SessionTokenManager
+from grist_mcp.tools.session import get_proxy_documentation as _get_proxy_documentation
+from grist_mcp.tools.session import request_session_token as _request_session_token
 
 from grist_mcp.tools.discovery import list_documents as _list_documents
 from grist_mcp.tools.read import list_tables as _list_tables
@@ -21,12 +24,13 @@ from grist_mcp.tools.schema import modify_column as _modify_column
 from grist_mcp.tools.schema import delete_column as _delete_column
 
 
-def create_server(auth: Authenticator, agent: Agent) -> Server:
+def create_server(auth: Authenticator, agent: Agent, token_manager: SessionTokenManager | None = None) -> Server:
     """Create and configure the MCP server for an authenticated agent.
 
     Args:
         auth: Authenticator instance for permission checks.
         agent: The authenticated agent for this server instance.
+        token_manager: Optional session token manager for HTTP proxy access.
 
     Returns:
         Configured MCP Server instance.
@@ -203,6 +207,34 @@ def create_server(auth: Authenticator, agent: Agent) -> Server:
                     "required": ["document", "table", "column_id"],
                 },
             ),
+            Tool(
+                name="get_proxy_documentation",
+                description="Get complete documentation for the HTTP proxy API",
+                inputSchema={"type": "object", "properties": {}, "required": []},
+            ),
+            Tool(
+                name="request_session_token",
+                description="Request a short-lived token for direct HTTP API access. Use this to delegate bulk data operations to scripts.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "document": {
+                            "type": "string",
+                            "description": "Document name to grant access to",
+                        },
+                        "permissions": {
+                            "type": "array",
+                            "items": {"type": "string", "enum": ["read", "write", "schema"]},
+                            "description": "Permission levels to grant",
+                        },
+                        "ttl_seconds": {
+                            "type": "integer",
+                            "description": "Token lifetime in seconds (max 3600, default 300)",
+                        },
+                    },
+                    "required": ["document", "permissions"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -264,6 +296,17 @@ def create_server(auth: Authenticator, agent: Agent) -> Server:
                 result = await _delete_column(
                     _current_agent, auth, arguments["document"], arguments["table"],
                     arguments["column_id"],
+                )
+            elif name == "get_proxy_documentation":
+                result = await _get_proxy_documentation()
+            elif name == "request_session_token":
+                if token_manager is None:
+                    return [TextContent(type="text", text="Session tokens not enabled")]
+                result = await _request_session_token(
+                    _current_agent, auth, token_manager,
+                    arguments["document"],
+                    arguments["permissions"],
+                    ttl_seconds=arguments.get("ttl_seconds", 300),
                 )
             else:
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]
