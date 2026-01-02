@@ -192,14 +192,12 @@ def _print_mcp_config(external_port: int, tokens: list) -> None:
 
 
 class HealthCheckFilter(logging.Filter):
-    """Filter out health check requests at INFO level."""
+    """Suppress health check requests unless LOG_LEVEL is DEBUG."""
 
     def filter(self, record: logging.LogRecord) -> bool:
-        message = record.getMessage()
-        if "/health" in message:
-            # Downgrade to DEBUG by changing the level
-            record.levelno = logging.DEBUG
-            record.levelname = "DEBUG"
+        if "/health" in record.getMessage():
+            # Only show health checks at DEBUG level
+            return os.environ.get("LOG_LEVEL", "INFO").upper() == "DEBUG"
         return True
 
 
