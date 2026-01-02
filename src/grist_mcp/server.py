@@ -28,19 +28,26 @@ from grist_mcp.tools.schema import modify_column as _modify_column
 from grist_mcp.tools.schema import delete_column as _delete_column
 
 
-def create_server(auth: Authenticator, agent: Agent, token_manager: SessionTokenManager | None = None) -> Server:
+def create_server(
+    auth: Authenticator,
+    agent: Agent,
+    token_manager: SessionTokenManager | None = None,
+    proxy_base_url: str | None = None,
+) -> Server:
     """Create and configure the MCP server for an authenticated agent.
 
     Args:
         auth: Authenticator instance for permission checks.
         agent: The authenticated agent for this server instance.
         token_manager: Optional session token manager for HTTP proxy access.
+        proxy_base_url: Base URL for the proxy endpoint (e.g., "https://example.com").
 
     Returns:
         Configured MCP Server instance.
     """
     server = Server("grist-mcp")
     _current_agent = agent
+    _proxy_base_url = proxy_base_url
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
@@ -327,6 +334,7 @@ def create_server(auth: Authenticator, agent: Agent, token_manager: SessionToken
                     arguments["document"],
                     arguments["permissions"],
                     ttl_seconds=arguments.get("ttl_seconds", 300),
+                    proxy_base_url=_proxy_base_url,
                 )
             else:
                 return [TextContent(type="text", text=f"Unknown tool: {name}")]

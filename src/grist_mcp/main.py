@@ -127,6 +127,7 @@ def create_app(config: Config):
     """Create the ASGI application."""
     auth = Authenticator(config)
     token_manager = SessionTokenManager()
+    proxy_base_url = os.environ.get("GRIST_MCP_URL")
 
     sse = SseServerTransport("/messages")
 
@@ -144,7 +145,7 @@ def create_app(config: Config):
             return
 
         # Create a server instance for this authenticated connection
-        server = create_server(auth, agent, token_manager)
+        server = create_server(auth, agent, token_manager, proxy_base_url)
 
         async with sse.connect_sse(scope, receive, send) as streams:
             await server.run(

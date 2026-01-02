@@ -117,6 +117,7 @@ async def request_session_token(
     document: str,
     permissions: list[str],
     ttl_seconds: int = 300,
+    proxy_base_url: str | None = None,
 ) -> dict:
     """Request a short-lived session token for HTTP proxy access.
 
@@ -139,10 +140,17 @@ async def request_session_token(
         ttl_seconds=ttl_seconds,
     )
 
+    # Build proxy URL - use base URL if provided, otherwise just path
+    proxy_path = "/api/v1/proxy"
+    if proxy_base_url:
+        proxy_url = f"{proxy_base_url.rstrip('/')}{proxy_path}"
+    else:
+        proxy_url = proxy_path
+
     return {
         "token": session.token,
         "document": session.document,
         "permissions": session.permissions,
         "expires_at": session.expires_at.isoformat(),
-        "proxy_url": "/api/v1/proxy",
+        "proxy_url": proxy_url,
     }
