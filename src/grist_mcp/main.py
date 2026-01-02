@@ -191,14 +191,16 @@ def _print_mcp_config(external_port: int, tokens: list) -> None:
     print()
 
 
-class HealthCheckFilter(logging.Filter):
-    """Suppress health check requests unless LOG_LEVEL is DEBUG."""
+class UvicornAccessFilter(logging.Filter):
+    """Suppress uvicorn access logs unless LOG_LEVEL is DEBUG.
+
+    At INFO level, only grist_mcp tool logs are shown.
+    At DEBUG level, all HTTP requests are visible.
+    """
 
     def filter(self, record: logging.LogRecord) -> bool:
-        if "/health" in record.getMessage():
-            # Only show health checks at DEBUG level
-            return os.environ.get("LOG_LEVEL", "INFO").upper() == "DEBUG"
-        return True
+        # Only show uvicorn access logs at DEBUG level
+        return os.environ.get("LOG_LEVEL", "INFO").upper() == "DEBUG"
 
 
 def main():
@@ -209,8 +211,8 @@ def main():
 
     setup_logging()
 
-    # Add health check filter to uvicorn access logger
-    logging.getLogger("uvicorn.access").addFilter(HealthCheckFilter())
+    # Suppress uvicorn access logs at INFO level (only show tool logs)
+    logging.getLogger("uvicorn.access").addFilter(UvicornAccessFilter())
 
     if not _ensure_config(config_path):
         return

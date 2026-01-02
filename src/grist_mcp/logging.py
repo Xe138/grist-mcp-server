@@ -26,6 +26,7 @@ def setup_logging() -> None:
 
     logger = logging.getLogger("grist_mcp")
     logger.setLevel(level)
+    logger.propagate = False  # Prevent duplicate logs to root logger
 
     # Only add handler if not already configured
     if not logger.handlers:
