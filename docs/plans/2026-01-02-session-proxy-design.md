@@ -42,6 +42,85 @@ Add a "session token" mechanism that lets agents delegate bulk data operations t
 | Document in request | Implicit from token | Token is scoped to one document; no need to specify |
 | Server architecture | Single process, add routes | Already running HTTP for SSE; just add routes |
 
+## MCP Tool: get_proxy_documentation
+
+Returns complete documentation for the HTTP proxy API. Agents call this when writing scripts that will use the proxy.
+
+**Input schema**:
+```json
+{
+  "type": "object",
+  "properties": {},
+  "required": []
+}
+```
+
+**Response**:
+```json
+{
+  "description": "HTTP proxy API for bulk data operations. Use request_session_token to get a short-lived token, then call the proxy endpoint directly from scripts.",
+  "endpoint": "POST /api/v1/proxy",
+  "authentication": "Bearer token in Authorization header",
+  "request_format": {
+    "method": "Operation name (required)",
+    "table": "Table name (required for most operations)",
+    "...": "Additional fields vary by method"
+  },
+  "methods": {
+    "get_records": {
+      "description": "Fetch records from a table",
+      "fields": {"table": "string", "filter": "object (optional)", "sort": "string (optional)", "limit": "integer (optional)"}
+    },
+    "sql_query": {
+      "description": "Run a read-only SQL query",
+      "fields": {"query": "string"}
+    },
+    "list_tables": {
+      "description": "List all tables in the document",
+      "fields": {}
+    },
+    "describe_table": {
+      "description": "Get column information for a table",
+      "fields": {"table": "string"}
+    },
+    "add_records": {
+      "description": "Add records to a table",
+      "fields": {"table": "string", "records": "array of objects"}
+    },
+    "update_records": {
+      "description": "Update existing records",
+      "fields": {"table": "string", "records": "array of {id, fields}"}
+    },
+    "delete_records": {
+      "description": "Delete records by ID",
+      "fields": {"table": "string", "record_ids": "array of integers"}
+    },
+    "create_table": {
+      "description": "Create a new table",
+      "fields": {"table_id": "string", "columns": "array of {id, type}"}
+    },
+    "add_column": {
+      "description": "Add a column to a table",
+      "fields": {"table": "string", "column_id": "string", "column_type": "string", "formula": "string (optional)"}
+    },
+    "modify_column": {
+      "description": "Modify a column's type or formula",
+      "fields": {"table": "string", "column_id": "string", "type": "string (optional)", "formula": "string (optional)"}
+    },
+    "delete_column": {
+      "description": "Delete a column",
+      "fields": {"table": "string", "column_id": "string"}
+    }
+  },
+  "response_format": {
+    "success": {"success": true, "data": "..."},
+    "error": {"success": false, "error": "message", "code": "ERROR_CODE"}
+  },
+  "error_codes": ["UNAUTHORIZED", "INVALID_TOKEN", "TOKEN_EXPIRED", "INVALID_REQUEST", "GRIST_ERROR"],
+  "example_script": "#!/usr/bin/env python3\nimport requests\nimport sys\n\ntoken = sys.argv[1]\nhost = sys.argv[2]\n\nresponse = requests.post(\n    f'{host}/api/v1/proxy',\n    headers={'Authorization': f'Bearer {token}'},\n    json={'method': 'add_records', 'table': 'Orders', 'records': [{'item': 'Widget', 'qty': 100}]}\n)\nprint(response.json())"
+}
+```
+
 ## MCP Tool: request_session_token
 
 **Input schema**:
@@ -186,8 +265,9 @@ async def handle_proxy(
 
 **`src/grist_mcp/server.py`**:
 - Accept `token_manager` parameter in `create_server()`
+- Add `get_proxy_documentation` tool to `list_tools()` (no parameters, returns static docs)
 - Add `request_session_token` tool to `list_tools()`
-- Add handler in `call_tool()` that creates token via `token_manager.create_token()`
+- Add handlers in `call_tool()` for both tools
 
 ## Security
 
