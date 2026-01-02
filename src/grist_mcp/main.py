@@ -252,11 +252,18 @@ def create_app(config: Config):
 
 def _print_mcp_config(external_port: int, tokens: list) -> None:
     """Print Claude Code MCP configuration."""
+    # Use GRIST_MCP_URL if set, otherwise fall back to localhost
+    base_url = os.environ.get("GRIST_MCP_URL")
+    if base_url:
+        sse_url = f"{base_url.rstrip('/')}/sse"
+    else:
+        sse_url = f"http://localhost:{external_port}/sse"
+
     print()
     print("Claude Code MCP configuration (copy-paste to add):")
     for t in tokens:
         config = (
-            f'{{"type": "sse", "url": "http://localhost:{external_port}/sse", '
+            f'{{"type": "sse", "url": "{sse_url}", '
             f'"headers": {{"Authorization": "Bearer {t.token}"}}}}'
         )
         print(f"  claude mcp add-json grist-{t.name} '{config}'")
