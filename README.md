@@ -149,6 +149,7 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 | `PORT` | Server port | `3000` |
 | `GRIST_MCP_TOKEN` | Agent authentication token (required) | - |
 | `CONFIG_PATH` | Path to config file inside container | `/app/config.yaml` |
+| `LOG_LEVEL` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
 
 ### config.yaml Structure
 
@@ -187,6 +188,55 @@ tokens:
 - `read`: Query tables and records, run SQL queries
 - `write`: Add, update, delete records
 - `schema`: Create tables, add/modify/delete columns
+
+## Logging
+
+### Configuration
+
+Set the `LOG_LEVEL` environment variable to control logging verbosity:
+
+| Level | Description |
+|-------|-------------|
+| `DEBUG` | Show all logs including HTTP requests and tool arguments |
+| `INFO` | Show tool calls with stats (default) |
+| `WARNING` | Show only auth errors and warnings |
+| `ERROR` | Show only errors |
+
+```bash
+# In .env or docker-compose.yml
+LOG_LEVEL=INFO
+```
+
+### Log Format
+
+At `INFO` level, each tool call produces a single log line:
+
+```
+2026-01-02 10:15:23 | agent-name (abc...xyz) | get_records | sales | 42 records | success | 125ms
+```
+
+| Field | Description |
+|-------|-------------|
+| Timestamp | `YYYY-MM-DD HH:MM:SS` |
+| Agent | Agent name with truncated token |
+| Tool | MCP tool name |
+| Document | Document name (or `-` for list_documents) |
+| Stats | Operation result (e.g., `42 records`, `3 tables`) |
+| Status | `success`, `auth_error`, or `error` |
+| Duration | Execution time in milliseconds |
+
+Errors include details on a second indented line:
+
+```
+2026-01-02 10:15:23 | agent-name (abc...xyz) | add_records | sales | - | error | 89ms
+    Grist API error: Invalid column 'foo'
+```
+
+### Production Recommendations
+
+- Use `LOG_LEVEL=INFO` for normal operation (default)
+- Use `LOG_LEVEL=DEBUG` for troubleshooting (shows HTTP traffic)
+- Use `LOG_LEVEL=WARNING` for minimal logging
 
 ## Security
 
