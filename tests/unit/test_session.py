@@ -72,9 +72,9 @@ def test_validate_token_returns_none_for_expired_token():
         ttl_seconds=1,
     )
 
-    # Wait for expiry (we'll use time manipulation instead)
+    # Wait for expiry
     import time
-    time.sleep(1.1)
+    time.sleep(1.5)
 
     session = manager.validate_token(created.token)
 
