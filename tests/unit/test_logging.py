@@ -1,6 +1,6 @@
 """Unit tests for logging module."""
 
-from grist_mcp.logging import truncate_token, extract_stats
+from grist_mcp.logging import truncate_token, extract_stats, format_tool_log
 
 
 class TestTruncateToken:
@@ -71,3 +71,51 @@ class TestExtractStats:
 
     def test_unknown_tool(self):
         assert extract_stats("unknown_tool", {}, {}) == "-"
+
+
+class TestFormatToolLog:
+    def test_success_format(self):
+        line = format_tool_log(
+            agent_name="dev-agent",
+            token="abcdefghijklmnop",
+            tool="get_records",
+            document="sales",
+            stats="42 records",
+            status="success",
+            duration_ms=125,
+        )
+        assert "dev-agent" in line
+        assert "abc...nop" in line
+        assert "get_records" in line
+        assert "sales" in line
+        assert "42 records" in line
+        assert "success" in line
+        assert "125ms" in line
+        # Check pipe-delimited format
+        assert line.count("|") == 6
+
+    def test_no_document(self):
+        line = format_tool_log(
+            agent_name="dev-agent",
+            token="abcdefghijklmnop",
+            tool="list_documents",
+            document=None,
+            stats="3 docs",
+            status="success",
+            duration_ms=45,
+        )
+        assert "| - |" in line
+
+    def test_error_format(self):
+        line = format_tool_log(
+            agent_name="dev-agent",
+            token="abcdefghijklmnop",
+            tool="add_records",
+            document="inventory",
+            stats="5 records",
+            status="error",
+            duration_ms=89,
+            error_message="Grist API error: Invalid column 'foo'",
+        )
+        assert "error" in line
+        assert "\n    Grist API error: Invalid column 'foo'" in line
