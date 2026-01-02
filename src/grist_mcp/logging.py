@@ -1,6 +1,29 @@
 """Logging configuration and utilities."""
 
+import logging
+import os
 from datetime import datetime
+
+
+def setup_logging() -> None:
+    """Configure logging based on LOG_LEVEL environment variable.
+
+    Valid levels: DEBUG, INFO, WARNING, ERROR (default: INFO)
+    """
+    level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, None)
+
+    if not isinstance(level, int):
+        level = logging.INFO
+
+    logger = logging.getLogger("grist_mcp")
+    logger.setLevel(level)
+
+    # Only add handler if not already configured
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
 
 
 def extract_stats(tool_name: str, arguments: dict, result: dict) -> str:

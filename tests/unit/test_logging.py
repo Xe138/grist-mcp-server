@@ -1,5 +1,7 @@
 """Unit tests for logging module."""
 
+import logging
+
 from grist_mcp.logging import truncate_token, extract_stats, format_tool_log
 
 
@@ -119,3 +121,32 @@ class TestFormatToolLog:
         )
         assert "error" in line
         assert "\n    Grist API error: Invalid column 'foo'" in line
+
+
+class TestSetupLogging:
+    def test_default_level_is_info(self, monkeypatch):
+        monkeypatch.delenv("LOG_LEVEL", raising=False)
+
+        from grist_mcp.logging import setup_logging
+        setup_logging()
+
+        logger = logging.getLogger("grist_mcp")
+        assert logger.level == logging.INFO
+
+    def test_respects_log_level_env(self, monkeypatch):
+        monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+
+        from grist_mcp.logging import setup_logging
+        setup_logging()
+
+        logger = logging.getLogger("grist_mcp")
+        assert logger.level == logging.DEBUG
+
+    def test_invalid_level_defaults_to_info(self, monkeypatch):
+        monkeypatch.setenv("LOG_LEVEL", "INVALID")
+
+        from grist_mcp.logging import setup_logging
+        setup_logging()
+
+        logger = logging.getLogger("grist_mcp")
+        assert logger.level == logging.INFO
