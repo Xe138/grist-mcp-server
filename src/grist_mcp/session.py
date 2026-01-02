@@ -53,3 +53,21 @@ class SessionTokenManager:
 
         self._tokens[token_str] = session
         return session
+
+    def validate_token(self, token: str) -> SessionToken | None:
+        """Validate a session token.
+
+        Returns the SessionToken if valid and not expired, None otherwise.
+        Also removes expired tokens lazily.
+        """
+        session = self._tokens.get(token)
+        if session is None:
+            return None
+
+        now = datetime.now(timezone.utc)
+        if session.expires_at < now:
+            # Token expired, remove it
+            del self._tokens[token]
+            return None
+
+        return session

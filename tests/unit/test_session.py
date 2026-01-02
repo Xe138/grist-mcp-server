@@ -37,3 +37,19 @@ def test_create_token_caps_ttl_at_maximum():
     # Should be capped at 3600 seconds (1 hour)
     max_expires = datetime.now(timezone.utc) + timedelta(seconds=3610)
     assert token.expires_at < max_expires
+
+
+def test_validate_token_returns_session_for_valid_token():
+    manager = SessionTokenManager()
+    created = manager.create_token(
+        agent_name="test-agent",
+        document="sales",
+        permissions=["read"],
+        ttl_seconds=300,
+    )
+
+    session = manager.validate_token(created.token)
+
+    assert session is not None
+    assert session.document == "sales"
+    assert session.agent_name == "test-agent"
