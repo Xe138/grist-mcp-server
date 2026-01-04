@@ -196,3 +196,43 @@ def test_sql_validation_rejects_multiple_statements(client):
 def test_sql_validation_allows_trailing_semicolon(client):
     # Should not raise
     client._validate_sql_query("SELECT * FROM users;")
+
+
+# Attachment tests
+
+@pytest.mark.asyncio
+async def test_upload_attachment(client, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://grist.example.com/api/docs/abc123/attachments",
+        method="POST",
+        json=[42],
+    )
+
+    result = await client.upload_attachment(
+        filename="invoice.pdf",
+        content=b"PDF content here",
+        content_type="application/pdf",
+    )
+
+    assert result == {
+        "attachment_id": 42,
+        "filename": "invoice.pdf",
+        "size_bytes": 16,
+    }
+
+
+@pytest.mark.asyncio
+async def test_upload_attachment_default_content_type(client, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://grist.example.com/api/docs/abc123/attachments",
+        method="POST",
+        json=[99],
+    )
+
+    result = await client.upload_attachment(
+        filename="data.bin",
+        content=b"\x00\x01\x02",
+    )
+
+    assert result["attachment_id"] == 99
+    assert result["size_bytes"] == 3

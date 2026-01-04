@@ -116,6 +116,39 @@ class GristClient:
         """Delete records by ID."""
         await self._request("POST", f"/tables/{table}/data/delete", json=record_ids)
 
+    async def upload_attachment(
+        self,
+        filename: str,
+        content: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> dict:
+        """Upload a file attachment. Returns attachment metadata.
+
+        Args:
+            filename: Name for the uploaded file.
+            content: File content as bytes.
+            content_type: MIME type of the file.
+
+        Returns:
+            Dict with attachment_id, filename, and size_bytes.
+        """
+        files = {"upload": (filename, content, content_type)}
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(
+                f"{self._base_url}/attachments",
+                headers=self._headers,
+                files=files,
+            )
+            response.raise_for_status()
+            # Grist returns list of attachment IDs
+            attachment_ids = response.json()
+            return {
+                "attachment_id": attachment_ids[0],
+                "filename": filename,
+                "size_bytes": len(content),
+            }
+
     # Schema operations
 
     async def create_table(self, table_id: str, columns: list[dict]) -> str:

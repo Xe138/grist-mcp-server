@@ -52,13 +52,14 @@ tokens:
     assert "add_column" in tool_names
     assert "modify_column" in tool_names
     assert "delete_column" in tool_names
+    assert "upload_attachment" in tool_names
 
     # Session tools (always registered)
     assert "get_proxy_documentation" in tool_names
     assert "request_session_token" in tool_names
 
-    # Should have all 14 tools
-    assert len(result.root.tools) == 14
+    # Should have all 15 tools
+    assert len(result.root.tools) == 15
 
 
 @pytest.mark.asyncio

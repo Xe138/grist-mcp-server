@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-03
+
+### Added
+
+#### Attachment Upload
+- **`upload_attachment` MCP tool**: Upload files to Grist documents
+- Base64-encoded content input (required for JSON-based MCP protocol)
+- Automatic MIME type detection from filename
+- Returns attachment ID for linking to records via `update_records`
+
+#### Usage
+```python
+# 1. Upload attachment
+result = upload_attachment(
+    document="accounting",
+    filename="invoice.pdf",
+    content_base64="JVBERi0xLjQK..."
+)
+# Returns: {"attachment_id": 42, "filename": "invoice.pdf", "size_bytes": 31395}
+
+# 2. Link to record
+update_records(document="accounting", table="Bills", records=[
+    {"id": 1, "fields": {"Attachment": [42]}}
+])
+```
+
 ## [1.2.0] - 2026-01-02
 
 ### Added
