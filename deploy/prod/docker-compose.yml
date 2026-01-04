@@ -1,7 +1,7 @@
 # Production environment
 services:
   grist-mcp:
-    image: ghcr.io/xe138/grist-mcp-server:latest
+    image: ghcr.io/xe138/grist-mcp-server:latest@sha256:b711745b030408c95ab20c440b6b263fc31e4110850449f86d833f7875e1994d
     ports:
       - "${PORT:-3000}:3000"
     volumes:
