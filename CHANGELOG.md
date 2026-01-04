@@ -9,26 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-#### Attachment Upload
-- **`upload_attachment` MCP tool**: Upload files to Grist documents
-- Base64-encoded content input (required for JSON-based MCP protocol)
+#### Attachment Upload via Proxy
+- **`POST /api/v1/attachments`**: New HTTP endpoint for file uploads
+- Uses `multipart/form-data` for efficient binary transfer (no base64 overhead)
 - Automatic MIME type detection from filename
 - Returns attachment ID for linking to records via `update_records`
+- Requires write permission in session token
 
 #### Usage
-```python
-# 1. Upload attachment
-result = upload_attachment(
-    document="accounting",
-    filename="invoice.pdf",
-    content_base64="JVBERi0xLjQK..."
-)
-# Returns: {"attachment_id": 42, "filename": "invoice.pdf", "size_bytes": 31395}
+```bash
+# Get session token with write permission
+TOKEN=$(curl -s ... | jq -r '.token')
 
-# 2. Link to record
-update_records(document="accounting", table="Bills", records=[
-    {"id": 1, "fields": {"Attachment": [42]}}
-])
+# Upload file
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@invoice.pdf" \
+  https://example.com/api/v1/attachments
+
+# Returns: {"success": true, "data": {"attachment_id": 42, "filename": "invoice.pdf", "size_bytes": 31395}}
+```
+
+```python
+# Python example
+import requests
+
+response = requests.post(
+    f'{proxy_url.replace("/proxy", "/attachments")}',
+    headers={'Authorization': f'Bearer {token}'},
+    files={'file': open('invoice.pdf', 'rb')}
+)
+attachment_id = response.json()['data']['attachment_id']
+
+# Link to record via proxy
+requests.post(proxy_url, headers={'Authorization': f'Bearer {token}'}, json={
+    'method': 'update_records',
+    'table': 'Bills',
+    'records': [{'id': 1, 'fields': {'Attachment': [attachment_id]}}]
+})
 ```
 
 ## [1.2.0] - 2026-01-02

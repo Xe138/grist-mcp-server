@@ -6,9 +6,28 @@ from grist_mcp.session import SessionTokenManager
 
 PROXY_DOCUMENTATION = {
     "description": "HTTP proxy API for bulk data operations. Use request_session_token to get a short-lived token, then call the proxy endpoint directly from scripts.",
-    "endpoint": "POST /api/v1/proxy",
-    "endpoint_note": "The full URL is returned in the 'proxy_url' field of request_session_token response",
+    "endpoints": {
+        "proxy": "POST /api/v1/proxy - JSON operations (CRUD, schema)",
+        "attachments": "POST /api/v1/attachments - File uploads (multipart/form-data)",
+    },
+    "endpoint_note": "The full URL is returned in the 'proxy_url' field of request_session_token response. Replace /proxy with /attachments for file uploads.",
     "authentication": "Bearer token in Authorization header",
+    "attachment_upload": {
+        "endpoint": "POST /api/v1/attachments",
+        "content_type": "multipart/form-data",
+        "permission": "write",
+        "description": "Upload file attachments to the document. Returns attachment_id for linking to records via update_records.",
+        "response": {"success": True, "data": {"attachment_id": 42, "filename": "invoice.pdf", "size_bytes": 31395}},
+        "example_curl": "curl -X POST -H 'Authorization: Bearer TOKEN' -F 'file=@invoice.pdf' URL/api/v1/attachments",
+        "example_python": """import requests
+response = requests.post(
+    f'{proxy_url.replace("/proxy", "/attachments")}',
+    headers={'Authorization': f'Bearer {token}'},
+    files={'file': open('invoice.pdf', 'rb')}
+)
+attachment_id = response.json()['data']['attachment_id']
+# Link to record: update_records with {'Attachment': [attachment_id]}""",
+    },
     "request_format": {
         "method": "Operation name (required)",
         "table": "Table name (required for most operations)",

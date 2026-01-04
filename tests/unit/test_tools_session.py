@@ -39,12 +39,14 @@ async def test_get_proxy_documentation_returns_complete_spec():
     result = await get_proxy_documentation()
 
     assert "description" in result
-    assert "endpoint" in result
-    assert result["endpoint"] == "POST /api/v1/proxy"
+    assert "endpoints" in result
+    assert "proxy" in result["endpoints"]
+    assert "attachments" in result["endpoints"]
     assert "authentication" in result
     assert "methods" in result
     assert "add_records" in result["methods"]
     assert "get_records" in result["methods"]
+    assert "attachment_upload" in result
     assert "example_script" in result
 
 

@@ -14,6 +14,7 @@ from grist_mcp.config import Config, load_config
 from grist_mcp.auth import Authenticator, AuthError
 from grist_mcp.session import SessionTokenManager
 from grist_mcp.proxy import parse_proxy_request, dispatch_proxy_request, ProxyError
+from grist_mcp.grist_client import GristClient
 from grist_mcp.logging import setup_logging
 
 
@@ -57,6 +58,62 @@ async def send_json_response(send: Send, status: int, data: dict) -> None:
         "type": "http.response.body",
         "body": body,
     })
+
+
+def _parse_multipart(content_type: str, body: bytes) -> tuple[str | None, bytes | None]:
+    """Parse multipart/form-data to extract uploaded file.
+
+    Returns (filename, content) or (None, None) if parsing fails.
+    """
+    import re
+
+    # Extract boundary from content-type
+    match = re.search(r'boundary=([^\s;]+)', content_type)
+    if not match:
+        return None, None
+
+    boundary = match.group(1).encode()
+    if boundary.startswith(b'"') and boundary.endswith(b'"'):
+        boundary = boundary[1:-1]
+
+    # Split by boundary
+    parts = body.split(b'--' + boundary)
+
+    for part in parts:
+        if b'Content-Disposition' not in part:
+            continue
+
+        # Split headers from content
+        if b'\r\n\r\n' in part:
+            header_section, content = part.split(b'\r\n\r\n', 1)
+        elif b'\n\n' in part:
+            header_section, content = part.split(b'\n\n', 1)
+        else:
+            continue
+
+        headers = header_section.decode('utf-8', errors='replace')
+
+        # Check if this is a file upload
+        if 'filename=' not in headers:
+            continue
+
+        # Extract filename
+        filename_match = re.search(r'filename="([^"]+)"', headers)
+        if not filename_match:
+            filename_match = re.search(r"filename=([^\s;]+)", headers)
+        if not filename_match:
+            continue
+
+        filename = filename_match.group(1)
+
+        # Remove trailing boundary marker and whitespace
+        content = content.rstrip()
+        if content.endswith(b'--'):
+            content = content[:-2].rstrip()
+
+        return filename, content
+
+    return None, None
 
 
 CONFIG_TEMPLATE = """\
@@ -229,6 +286,83 @@ def create_app(config: Config):
                 "code": e.code,
             })
 
+    async def handle_attachments(scope: Scope, receive: Receive, send: Send) -> None:
+        """Handle file attachment uploads via multipart/form-data."""
+        # Extract token
+        token = _get_bearer_token(scope)
+        if not token:
+            await send_json_response(send, 401, {
+                "success": False,
+                "error": "Missing Authorization header",
+                "code": "INVALID_TOKEN",
+            })
+            return
+
+        # Validate session token
+        session = token_manager.validate_token(token)
+        if session is None:
+            await send_json_response(send, 401, {
+                "success": False,
+                "error": "Invalid or expired token",
+                "code": "TOKEN_EXPIRED",
+            })
+            return
+
+        # Check write permission
+        if "write" not in session.permissions:
+            await send_json_response(send, 403, {
+                "success": False,
+                "error": "Write permission required for attachment upload",
+                "code": "UNAUTHORIZED",
+            })
+            return
+
+        # Get content-type header
+        headers = dict(scope.get("headers", []))
+        content_type = headers.get(b"content-type", b"").decode()
+
+        if not content_type.startswith("multipart/form-data"):
+            await send_json_response(send, 400, {
+                "success": False,
+                "error": "Content-Type must be multipart/form-data",
+                "code": "INVALID_REQUEST",
+            })
+            return
+
+        # Read request body
+        body = b""
+        while True:
+            message = await receive()
+            body += message.get("body", b"")
+            if not message.get("more_body", False):
+                break
+
+        # Parse multipart
+        filename, content = _parse_multipart(content_type, body)
+        if filename is None or content is None:
+            await send_json_response(send, 400, {
+                "success": False,
+                "error": "No file found in request",
+                "code": "INVALID_REQUEST",
+            })
+            return
+
+        # Upload to Grist
+        try:
+            doc = auth.get_document(session.document)
+            client = GristClient(doc)
+            result = await client.upload_attachment(filename, content)
+            await send_json_response(send, 200, {
+                "success": True,
+                "data": result,
+            })
+        except Exception as e:
+            await send_json_response(send, 500, {
+                "success": False,
+                "error": str(e),
+                "code": "GRIST_ERROR",
+            })
+
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             return
@@ -244,6 +378,8 @@ def create_app(config: Config):
             await handle_messages(scope, receive, send)
         elif path == "/api/v1/proxy" and method == "POST":
             await handle_proxy(scope, receive, send)
+        elif path == "/api/v1/attachments" and method == "POST":
+            await handle_attachments(scope, receive, send)
         else:
             await handle_not_found(scope, receive, send)
 

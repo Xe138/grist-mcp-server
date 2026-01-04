@@ -22,7 +22,6 @@ from grist_mcp.tools.read import sql_query as _sql_query
 from grist_mcp.tools.write import add_records as _add_records
 from grist_mcp.tools.write import update_records as _update_records
 from grist_mcp.tools.write import delete_records as _delete_records
-from grist_mcp.tools.write import upload_attachment as _upload_attachment
 from grist_mcp.tools.schema import create_table as _create_table
 from grist_mcp.tools.schema import add_column as _add_column
 from grist_mcp.tools.schema import modify_column as _modify_column
@@ -220,32 +219,6 @@ def create_server(
                 },
             ),
             Tool(
-                name="upload_attachment",
-                description="Upload a file attachment to a Grist document. Returns attachment ID for linking to records via update_records.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "document": {
-                            "type": "string",
-                            "description": "Document name",
-                        },
-                        "filename": {
-                            "type": "string",
-                            "description": "Filename with extension (e.g., 'invoice.pdf')",
-                        },
-                        "content_base64": {
-                            "type": "string",
-                            "description": "File content as base64-encoded string",
-                        },
-                        "content_type": {
-                            "type": "string",
-                            "description": "MIME type (optional, auto-detected from filename)",
-                        },
-                    },
-                    "required": ["document", "filename", "content_base64"],
-                },
-            ),
-            Tool(
                 name="get_proxy_documentation",
                 description="Get complete documentation for the HTTP proxy API",
                 inputSchema={"type": "object", "properties": {}, "required": []},
@@ -350,12 +323,6 @@ def create_server(
                 result = await _delete_column(
                     _current_agent, auth, arguments["document"], arguments["table"],
                     arguments["column_id"],
-                )
-            elif name == "upload_attachment":
-                result = await _upload_attachment(
-                    _current_agent, auth, arguments["document"],
-                    arguments["filename"], arguments["content_base64"],
-                    content_type=arguments.get("content_type"),
                 )
             elif name == "get_proxy_documentation":
                 result = await _get_proxy_documentation()
