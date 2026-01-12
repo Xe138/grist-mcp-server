@@ -363,6 +363,67 @@ def create_app(config: Config):
                 "code": "GRIST_ERROR",
             })
 
+    async def handle_attachment_download(
+        scope: Scope, receive: Receive, send: Send, attachment_id: int
+    ) -> None:
+        """Handle attachment download by ID."""
+        # Extract token
+        token = _get_bearer_token(scope)
+        if not token:
+            await send_json_response(send, 401, {
+                "success": False,
+                "error": "Missing Authorization header",
+                "code": "INVALID_TOKEN",
+            })
+            return
+
+        # Validate session token
+        session = token_manager.validate_token(token)
+        if session is None:
+            await send_json_response(send, 401, {
+                "success": False,
+                "error": "Invalid or expired token",
+                "code": "TOKEN_EXPIRED",
+            })
+            return
+
+        # Check read permission
+        if "read" not in session.permissions:
+            await send_json_response(send, 403, {
+                "success": False,
+                "error": "Read permission required for attachment download",
+                "code": "UNAUTHORIZED",
+            })
+            return
+
+        # Download from Grist
+        try:
+            doc = auth.get_document(session.document)
+            client = GristClient(doc)
+            result = await client.download_attachment(attachment_id)
+
+            # Build response headers
+            headers = [[b"content-type", result["content_type"].encode()]]
+            if result["filename"]:
+                disposition = f'attachment; filename="{result["filename"]}"'
+                headers.append([b"content-disposition", disposition.encode()])
+
+            await send({
+                "type": "http.response.start",
+                "status": 200,
+                "headers": headers,
+            })
+            await send({
+                "type": "http.response.body",
+                "body": result["content"],
+            })
+        except Exception as e:
+            await send_json_response(send, 500, {
+                "success": False,
+                "error": str(e),
+                "code": "GRIST_ERROR",
+            })
+
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             return
@@ -380,6 +441,17 @@ def create_app(config: Config):
             await handle_proxy(scope, receive, send)
         elif path == "/api/v1/attachments" and method == "POST":
             await handle_attachments(scope, receive, send)
+        elif path.startswith("/api/v1/attachments/") and method == "GET":
+            # Parse attachment ID from path: /api/v1/attachments/{id}
+            try:
+                attachment_id = int(path.split("/")[-1])
+                await handle_attachment_download(scope, receive, send, attachment_id)
+            except ValueError:
+                await send_json_response(send, 400, {
+                    "success": False,
+                    "error": "Invalid attachment ID",
+                    "code": "INVALID_REQUEST",
+                })
         else:
             await handle_not_found(scope, receive, send)
 

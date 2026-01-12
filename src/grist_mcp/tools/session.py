@@ -8,9 +8,10 @@ PROXY_DOCUMENTATION = {
     "description": "HTTP proxy API for bulk data operations. Use request_session_token to get a short-lived token, then call the proxy endpoint directly from scripts.",
     "endpoints": {
         "proxy": "POST /api/v1/proxy - JSON operations (CRUD, schema)",
-        "attachments": "POST /api/v1/attachments - File uploads (multipart/form-data)",
+        "attachments_upload": "POST /api/v1/attachments - File uploads (multipart/form-data)",
+        "attachments_download": "GET /api/v1/attachments/{id} - File downloads (binary response)",
     },
-    "endpoint_note": "The full URL is returned in the 'proxy_url' field of request_session_token response. Replace /proxy with /attachments for file uploads.",
+    "endpoint_note": "The full URL is returned in the 'proxy_url' field of request_session_token response. Replace /proxy with /attachments for file operations.",
     "authentication": "Bearer token in Authorization header",
     "attachment_upload": {
         "endpoint": "POST /api/v1/attachments",
@@ -27,6 +28,20 @@ response = requests.post(
 )
 attachment_id = response.json()['data']['attachment_id']
 # Link to record: update_records with {'Attachment': [attachment_id]}""",
+    },
+    "attachment_download": {
+        "endpoint": "GET /api/v1/attachments/{attachment_id}",
+        "permission": "read",
+        "description": "Download attachment by ID. Returns binary content with appropriate Content-Type and Content-Disposition headers.",
+        "response_headers": ["Content-Type", "Content-Disposition"],
+        "example_curl": "curl -H 'Authorization: Bearer TOKEN' URL/api/v1/attachments/42 -o file.pdf",
+        "example_python": """import requests
+response = requests.get(
+    f'{base_url}/api/v1/attachments/42',
+    headers={'Authorization': f'Bearer {token}'}
+)
+with open('downloaded.pdf', 'wb') as f:
+    f.write(response.content)""",
     },
     "request_format": {
         "method": "Operation name (required)",

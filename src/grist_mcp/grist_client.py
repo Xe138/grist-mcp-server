@@ -149,6 +149,38 @@ class GristClient:
                 "size_bytes": len(content),
             }
 
+    async def download_attachment(self, attachment_id: int) -> dict:
+        """Download an attachment by ID.
+
+        Args:
+            attachment_id: The ID of the attachment to download.
+
+        Returns:
+            Dict with content (bytes), content_type, and filename.
+        """
+        import re
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.get(
+                f"{self._base_url}/attachments/{attachment_id}/download",
+                headers=self._headers,
+            )
+            response.raise_for_status()
+
+            # Extract filename from Content-Disposition header
+            content_disp = response.headers.get("content-disposition", "")
+            filename = None
+            if "filename=" in content_disp:
+                match = re.search(r'filename="?([^";]+)"?', content_disp)
+                if match:
+                    filename = match.group(1)
+
+            return {
+                "content": response.content,
+                "content_type": response.headers.get("content-type", "application/octet-stream"),
+                "filename": filename,
+            }
+
     # Schema operations
 
     async def create_table(self, table_id: str, columns: list[dict]) -> str:

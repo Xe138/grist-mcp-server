@@ -236,3 +236,59 @@ async def test_upload_attachment_default_content_type(client, httpx_mock: HTTPXM
 
     assert result["attachment_id"] == 99
     assert result["size_bytes"] == 3
+
+
+@pytest.mark.asyncio
+async def test_download_attachment(client, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://grist.example.com/api/docs/abc123/attachments/42/download",
+        method="GET",
+        content=b"PDF content here",
+        headers={
+            "content-type": "application/pdf",
+            "content-disposition": 'attachment; filename="invoice.pdf"',
+        },
+    )
+
+    result = await client.download_attachment(42)
+
+    assert result["content"] == b"PDF content here"
+    assert result["content_type"] == "application/pdf"
+    assert result["filename"] == "invoice.pdf"
+
+
+@pytest.mark.asyncio
+async def test_download_attachment_no_filename(client, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://grist.example.com/api/docs/abc123/attachments/99/download",
+        method="GET",
+        content=b"binary data",
+        headers={
+            "content-type": "application/octet-stream",
+        },
+    )
+
+    result = await client.download_attachment(99)
+
+    assert result["content"] == b"binary data"
+    assert result["content_type"] == "application/octet-stream"
+    assert result["filename"] is None
+
+
+@pytest.mark.asyncio
+async def test_download_attachment_unquoted_filename(client, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://grist.example.com/api/docs/abc123/attachments/55/download",
+        method="GET",
+        content=b"image data",
+        headers={
+            "content-type": "image/png",
+            "content-disposition": "attachment; filename=photo.png",
+        },
+    )
+
+    result = await client.download_attachment(55)
+
+    assert result["content"] == b"image data"
+    assert result["content_type"] == "image/png"
+    assert result["filename"] == "photo.png"
