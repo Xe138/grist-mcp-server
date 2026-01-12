@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-01-12
+
+### Added
+
+#### Attachment Download via Proxy
+- **`GET /api/v1/attachments/{id}`**: New HTTP endpoint for downloading attachments
+- Returns binary content with appropriate `Content-Type` and `Content-Disposition` headers
+- Requires read permission in session token
+- Complements the existing upload endpoint for complete attachment workflows
+
+#### Usage
+```bash
+# Get session token with read permission
+TOKEN=$(curl -s ... | jq -r '.token')
+
+# Download attachment
+curl -H "Authorization: Bearer $TOKEN" \
+  https://example.com/api/v1/attachments/42 \
+  -o downloaded.pdf
+```
+
+```python
+# Python example
+import requests
+
+response = requests.get(
+    f'{base_url}/api/v1/attachments/42',
+    headers={'Authorization': f'Bearer {token}'}
+)
+with open('downloaded.pdf', 'wb') as f:
+    f.write(response.content)
+```
+
 ## [1.3.0] - 2026-01-03
 
 ### Added
