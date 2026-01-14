@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-01-14
+
+### Added
+
+#### Reference Column Filter Support
+- **Filter normalization**: `get_records` now automatically normalizes filter values to array format
+- Fixes 400 errors when filtering on `Ref:*` (reference/foreign key) columns
+- Single values are wrapped in arrays before sending to Grist API
+
+#### Usage
+```python
+# Before: Failed with 400 Bad Request
+get_records(document="accounting", table="TransactionLines", filter={"Transaction": 44})
+
+# After: Works - filter normalized to {"Transaction": [44]}
+get_records(document="accounting", table="TransactionLines", filter={"Transaction": 44})
+
+# Multiple values also supported
+get_records(document="accounting", table="TransactionLines", filter={"Transaction": [44, 45, 46]})
+```
+
+### Fixed
+- Shell script shebangs updated to `#!/usr/bin/env bash` for portability across environments
+
 ## [1.4.0] - 2026-01-12
 
 ### Added
