@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/get-test-instance-id.sh
 # Generate a unique instance ID from git branch for parallel test isolation
 

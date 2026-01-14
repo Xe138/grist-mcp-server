@@ -76,6 +76,45 @@ async def test_get_records(agent, auth, mock_client):
 
 
 @pytest.mark.asyncio
+async def test_get_records_normalizes_filter(agent, auth, mock_client):
+    """Test that filter values are normalized to array format for Grist API."""
+    mock_client.get_records.return_value = [{"id": 1, "Customer": 5}]
+
+    await get_records(
+        agent, auth, "budget", "Orders",
+        filter={"Customer": 5, "Status": "active"},
+        client=mock_client,
+    )
+
+    # Verify filter was normalized: single values wrapped in lists
+    mock_client.get_records.assert_called_once_with(
+        "Orders",
+        filter={"Customer": [5], "Status": ["active"]},
+        sort=None,
+        limit=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_records_preserves_list_filter(agent, auth, mock_client):
+    """Test that filter values already in list format are preserved."""
+    mock_client.get_records.return_value = []
+
+    await get_records(
+        agent, auth, "budget", "Orders",
+        filter={"Customer": [5, 6, 7]},
+        client=mock_client,
+    )
+
+    mock_client.get_records.assert_called_once_with(
+        "Orders",
+        filter={"Customer": [5, 6, 7]},
+        sort=None,
+        limit=None,
+    )
+
+
+@pytest.mark.asyncio
 async def test_sql_query(agent, auth, mock_client):
     result = await sql_query(agent, auth, "budget", "SELECT * FROM Table1", client=mock_client)
 

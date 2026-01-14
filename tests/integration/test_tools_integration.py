@@ -90,6 +90,36 @@ async def test_all_tools(services_ready):
         log = get_mock_request_log()
         assert any("/records" in entry["path"] and entry["method"] == "GET" for entry in log)
 
+        # Test get_records with Ref column filter
+        # This tests that single values are normalized to arrays for the Grist API
+        clear_mock_request_log()
+        result = await client.call_tool(
+            "get_records",
+            {"document": "test-doc", "table": "Orders", "filter": {"Customer": 1}}
+        )
+        data = json.loads(result.content[0].text)
+        assert "records" in data
+        # Should return only orders for Customer 1 (orders 1 and 3)
+        assert len(data["records"]) == 2
+        for record in data["records"]:
+            assert record["Customer"] == 1
+        log = get_mock_request_log()
+        # Verify the filter was sent as array format
+        filter_requests = [e for e in log if "/records" in e["path"] and "filter=" in e["path"]]
+        assert len(filter_requests) >= 1
+        # The filter value should be [1] not 1
+        assert "[1]" in filter_requests[0]["path"]
+
+        # Test get_records with multiple filter values
+        clear_mock_request_log()
+        result = await client.call_tool(
+            "get_records",
+            {"document": "test-doc", "table": "Orders", "filter": {"Customer": [1, 2]}}
+        )
+        data = json.loads(result.content[0].text)
+        assert "records" in data
+        assert len(data["records"]) == 3  # All 3 orders (customers 1 and 2)
+
         # Test sql_query
         clear_mock_request_log()
         result = await client.call_tool(

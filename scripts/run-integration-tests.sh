@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/run-integration-tests.sh
 # Run integration tests with branch isolation and dynamic port discovery
 set -e

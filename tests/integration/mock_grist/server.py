@@ -35,6 +35,18 @@ MOCK_TABLES = {
             {"id": 2, "fields": {"Title": "Deploy", "Done": False}},
         ],
     },
+    "Orders": {
+        "columns": [
+            {"id": "OrderNum", "fields": {"type": "Int"}},
+            {"id": "Customer", "fields": {"type": "Ref:People"}},
+            {"id": "Amount", "fields": {"type": "Numeric"}},
+        ],
+        "records": [
+            {"id": 1, "fields": {"OrderNum": 1001, "Customer": 1, "Amount": 100.0}},
+            {"id": 2, "fields": {"OrderNum": 1002, "Customer": 2, "Amount": 200.0}},
+            {"id": 3, "fields": {"OrderNum": 1003, "Customer": 1, "Amount": 150.0}},
+        ],
+    },
 }
 
 # Track requests for test assertions
@@ -93,12 +105,40 @@ async def get_records(request):
     """GET /api/docs/{doc_id}/tables/{table_id}/records"""
     doc_id = request.path_params["doc_id"]
     table_id = request.path_params["table_id"]
-    log_request("GET", f"/api/docs/{doc_id}/tables/{table_id}/records")
+    filter_param = request.query_params.get("filter")
+    log_request("GET", f"/api/docs/{doc_id}/tables/{table_id}/records?filter={filter_param}")
 
     if table_id not in MOCK_TABLES:
         return JSONResponse({"error": "Table not found"}, status_code=404)
 
-    return JSONResponse({"records": MOCK_TABLES[table_id]["records"]})
+    records = MOCK_TABLES[table_id]["records"]
+
+    # Apply filtering if provided
+    if filter_param:
+        try:
+            filters = json.loads(filter_param)
+            # Validate filter format: all values must be arrays (Grist API requirement)
+            for key, values in filters.items():
+                if not isinstance(values, list):
+                    return JSONResponse(
+                        {"error": f"Filter values must be arrays, got {type(values).__name__} for '{key}'"},
+                        status_code=400
+                    )
+            # Apply filters: record matches if field value is in the filter list
+            filtered_records = []
+            for record in records:
+                match = True
+                for key, allowed_values in filters.items():
+                    if record["fields"].get(key) not in allowed_values:
+                        match = False
+                        break
+                if match:
+                    filtered_records.append(record)
+            records = filtered_records
+        except json.JSONDecodeError:
+            return JSONResponse({"error": "Invalid filter JSON"}, status_code=400)
+
+    return JSONResponse({"records": records})
 
 
 async def add_records(request):

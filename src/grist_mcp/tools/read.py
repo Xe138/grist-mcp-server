@@ -2,6 +2,7 @@
 
 from grist_mcp.auth import Agent, Authenticator, Permission
 from grist_mcp.grist_client import GristClient
+from grist_mcp.tools.filters import normalize_filter
 
 
 async def list_tables(
@@ -56,7 +57,10 @@ async def get_records(
         doc = auth.get_document(document)
         client = GristClient(doc)
 
-    records = await client.get_records(table, filter=filter, sort=sort, limit=limit)
+    # Normalize filter values to array format for Grist API
+    normalized_filter = normalize_filter(filter)
+
+    records = await client.get_records(table, filter=normalized_filter, sort=sort, limit=limit)
     return {"records": records}
 
 
