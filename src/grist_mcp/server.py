@@ -186,13 +186,14 @@ def create_server(
                         "column_id": {"type": "string"},
                         "column_type": {"type": "string"},
                         "formula": {"type": "string"},
+                        "label": {"type": "string", "description": "Display label for the column"},
                     },
                     "required": ["document", "table", "column_id", "column_type"],
                 },
             ),
             Tool(
                 name="modify_column",
-                description="Modify a column's type or formula",
+                description="Modify a column's type, formula, or label",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -201,6 +202,7 @@ def create_server(
                         "column_id": {"type": "string"},
                         "type": {"type": "string"},
                         "formula": {"type": "string"},
+                        "label": {"type": "string", "description": "Display label for the column"},
                     },
                     "required": ["document", "table", "column_id"],
                 },
@@ -311,6 +313,7 @@ def create_server(
                     _current_agent, auth, arguments["document"], arguments["table"],
                     arguments["column_id"], arguments["column_type"],
                     formula=arguments.get("formula"),
+                    label=arguments.get("label"),
                 )
             elif name == "modify_column":
                 result = await _modify_column(
@@ -318,6 +321,7 @@ def create_server(
                     arguments["column_id"],
                     type=arguments.get("type"),
                     formula=arguments.get("formula"),
+                    label=arguments.get("label"),
                 )
             elif name == "delete_column":
                 result = await _delete_column(

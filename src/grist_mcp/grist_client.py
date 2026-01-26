@@ -203,11 +203,14 @@ class GristClient:
         column_id: str,
         column_type: str,
         formula: str | None = None,
+        label: str | None = None,
     ) -> str:
         """Add a column to a table. Returns column ID."""
         fields = {"type": column_type}
         if formula:
             fields["formula"] = formula
+        if label:
+            fields["label"] = label
 
         payload = {"columns": [{"id": column_id, "fields": fields}]}
         data = await self._request("POST", f"/tables/{table}/columns", json=payload)
@@ -219,13 +222,16 @@ class GristClient:
         column_id: str,
         type: str | None = None,
         formula: str | None = None,
+        label: str | None = None,
     ) -> None:
-        """Modify a column's type or formula."""
+        """Modify a column's type, formula, or label."""
         fields = {}
         if type is not None:
             fields["type"] = type
         if formula is not None:
             fields["formula"] = formula
+        if label is not None:
+            fields["label"] = label
 
         payload = {"columns": [{"id": column_id, "fields": fields}]}
         await self._request("PATCH", f"/tables/{table}/columns", json=payload)

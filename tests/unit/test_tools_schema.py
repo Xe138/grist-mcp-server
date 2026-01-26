@@ -81,6 +81,25 @@ async def test_add_column(auth, mock_client):
     )
 
     assert result == {"column_id": "NewCol"}
+    mock_client.add_column.assert_called_once_with(
+        "Table1", "NewCol", "Text", formula=None, label=None
+    )
+
+
+@pytest.mark.asyncio
+async def test_add_column_with_label(auth, mock_client):
+    agent = auth.authenticate("schema-token")
+
+    result = await add_column(
+        agent, auth, "budget", "Table1", "first_name", "Text",
+        label="First Name",
+        client=mock_client,
+    )
+
+    assert result == {"column_id": "NewCol"}
+    mock_client.add_column.assert_called_once_with(
+        "Table1", "first_name", "Text", formula=None, label="First Name"
+    )
 
 
 @pytest.mark.asyncio
@@ -95,6 +114,25 @@ async def test_modify_column(auth, mock_client):
     )
 
     assert result == {"modified": True}
+    mock_client.modify_column.assert_called_once_with(
+        "Table1", "Col1", type="Int", formula="$A + $B", label=None
+    )
+
+
+@pytest.mark.asyncio
+async def test_modify_column_with_label(auth, mock_client):
+    agent = auth.authenticate("schema-token")
+
+    result = await modify_column(
+        agent, auth, "budget", "Table1", "Col1",
+        label="Column One",
+        client=mock_client,
+    )
+
+    assert result == {"modified": True}
+    mock_client.modify_column.assert_called_once_with(
+        "Table1", "Col1", type=None, formula=None, label="Column One"
+    )
 
 
 @pytest.mark.asyncio

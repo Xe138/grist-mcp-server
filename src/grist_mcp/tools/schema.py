@@ -31,6 +31,7 @@ async def add_column(
     column_id: str,
     column_type: str,
     formula: str | None = None,
+    label: str | None = None,
     client: GristClient | None = None,
 ) -> dict:
     """Add a column to a table."""
@@ -40,7 +41,9 @@ async def add_column(
         doc = auth.get_document(document)
         client = GristClient(doc)
 
-    created_id = await client.add_column(table, column_id, column_type, formula=formula)
+    created_id = await client.add_column(
+        table, column_id, column_type, formula=formula, label=label
+    )
     return {"column_id": created_id}
 
 
@@ -52,16 +55,17 @@ async def modify_column(
     column_id: str,
     type: str | None = None,
     formula: str | None = None,
+    label: str | None = None,
     client: GristClient | None = None,
 ) -> dict:
-    """Modify a column's type or formula."""
+    """Modify a column's type, formula, or label."""
     auth.authorize(agent, document, Permission.SCHEMA)
 
     if client is None:
         doc = auth.get_document(document)
         client = GristClient(doc)
 
-    await client.modify_column(table, column_id, type=type, formula=formula)
+    await client.modify_column(table, column_id, type=type, formula=formula, label=label)
     return {"modified": True}
 
 

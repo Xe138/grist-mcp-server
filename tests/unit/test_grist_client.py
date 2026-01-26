@@ -155,6 +155,27 @@ async def test_add_column(client, httpx_mock: HTTPXMock):
     col_id = await client.add_column("Table1", "NewCol", "Text", formula=None)
 
     assert col_id == "NewCol"
+    request = httpx_mock.get_request()
+    import json
+    payload = json.loads(request.content)
+    assert payload == {"columns": [{"id": "NewCol", "fields": {"type": "Text"}}]}
+
+
+@pytest.mark.asyncio
+async def test_add_column_with_label(client, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://grist.example.com/api/docs/abc123/tables/Table1/columns",
+        method="POST",
+        json={"columns": [{"id": "first_name"}]},
+    )
+
+    col_id = await client.add_column("Table1", "first_name", "Text", label="First Name")
+
+    assert col_id == "first_name"
+    request = httpx_mock.get_request()
+    import json
+    payload = json.loads(request.content)
+    assert payload == {"columns": [{"id": "first_name", "fields": {"type": "Text", "label": "First Name"}}]}
 
 
 @pytest.mark.asyncio
@@ -167,6 +188,22 @@ async def test_modify_column(client, httpx_mock: HTTPXMock):
 
     # Should not raise
     await client.modify_column("Table1", "Amount", type="Int", formula="$Price * $Qty")
+
+
+@pytest.mark.asyncio
+async def test_modify_column_with_label(client, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://grist.example.com/api/docs/abc123/tables/Table1/columns",
+        method="PATCH",
+        json={},
+    )
+
+    await client.modify_column("Table1", "Col1", label="Column One")
+
+    request = httpx_mock.get_request()
+    import json
+    payload = json.loads(request.content)
+    assert payload == {"columns": [{"id": "Col1", "fields": {"label": "Column One"}}]}
 
 
 @pytest.mark.asyncio
