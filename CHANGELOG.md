@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-01-26
+
+### Added
+
+#### Column Label Support
+- **`add_column`**: New optional `label` parameter for setting display name
+- **`modify_column`**: New optional `label` parameter for updating display name
+
+Labels are human-readable names shown in Grist column headers, separate from the `column_id` used in formulas and API calls. If not provided, Grist defaults the label to the column ID.
+
+#### Usage
+```python
+# Create column with display label
+add_column(document="crm", table="Contacts", column_id="first_name", column_type="Text", label="First Name")
+
+# Update existing column's label
+modify_column(document="crm", table="Contacts", column_id="first_name", label="Given Name")
+```
+
 ## [1.4.1] - 2026-01-14
 
 ### Added
