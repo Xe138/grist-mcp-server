@@ -1,8 +1,8 @@
 # Stage 1: Builder
-FROM python:3.14-slim AS builder
+FROM python:3.14-slim@sha256:1a3c6dbfd2173971abba880c3cc2ec4643690901f6ad6742d0827bae6cefc925 AS builder
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:latest@sha256:db9370c2b0b837c74f454bea914343da9f29232035aa7632a1b14dc03add9edb /uv /usr/local/bin/uv
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ RUN uv sync --frozen --no-dev
 
 
 # Stage 2: Runtime
-FROM python:3.14-slim
+FROM python:3.14-slim@sha256:1a3c6dbfd2173971abba880c3cc2ec4643690901f6ad6742d0827bae6cefc925
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash appuser
